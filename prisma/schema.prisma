@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("seller") // admin | seller
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  activities ActivityLog[]
+}
+
+model Client {
+  id              String   @id @default(cuid())
+  type            String   // producer | buyer
+  name            String
+  farmOrCompany   String?
+  city            String
+  state           String
+  phone           String
+  email           String?
+  mainProducts    String   // JSON: ["soja","milho"]
+  estimatedVolume Float?
+  notes           String?
+  status          String   @default("active") // active | inactive
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  deals Deal[]
+  leads Lead[]  @relation("ConvertedLead")
+}
+
+model Lead {
+  id                String   @id @default(cuid())
+  name              String
+  phone             String
+  email             String?
+  city              String
+  state             String
+  source            String   // indication | instagram | call | other
+  stage             String   @default("new") // new | contacted | qualified | unqualified
+  interestProducts  String
+  notes             String?
+  convertedClientId String?
+  convertedClient   Client?  @relation("ConvertedLead", fields: [convertedClientId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Deal {
+  id                String    @id @default(cuid())
+  clientId          String
+  client            Client    @relation(fields: [clientId], references: [id])
+  product           String    // soja | milho | outros
+  side              String    // buy | sell
+  volume            Float
+  unit              String    // sc | kg | t
+  unitPrice         Float
+  totalValue        Float
+  commissionPct     Float     @default(0.8)
+  commissionValue   Float
+  status            String    @default("new") // new | proposal | negotiating | closed | lost
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model PriceHistory {
+  id          String   @id @default(cuid())
+  product     String
+  regionLabel String
+  date        DateTime
+  price       Float
+  unit        String   // sc | kg | t
+  createdAt   DateTime @default(now())
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  entityType String   // client | lead | deal
+  entityId   String
+  action     String   // created | updated | status_changed
+  details    String?  // JSON
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+}

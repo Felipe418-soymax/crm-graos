@@ -89,7 +89,7 @@ fi
 # ── 7. npm install ────────────────────────────────────────────────────────────
 info "Instalando dependências npm (pode levar 1-2 min)..."
 cd "$APP_DIR"
-npm install --omit=dev --silent
+npm install --silent
 ok "Dependências instaladas"
 
 # ── 8. Prisma — criar banco ───────────────────────────────────────────────────

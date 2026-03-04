@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { Plus, Search, ChevronRight, TrendingUp } from 'lucide-react'
-import { Deal } from '@/types'
+import { Deal, Produto } from '@/types'
 import Modal from '@/components/ui/Modal'
 import DealForm from '@/components/deals/DealForm'
 import { DealStatusBadge } from '@/components/ui/Badge'
@@ -28,6 +28,7 @@ export default function NegociacoesPage() {
   const [view, setView] = useState<'kanban' | 'table'>('kanban')
   const [search, setSearch] = useState('')
   const [productFilter, setProductFilter] = useState('')
+  const [products, setProducts] = useState<Array<{value: string, label: string}>>([{value:'soja',label:'Soja'},{value:'milho',label:'Milho'},{value:'outros',label:'Outros'}])
 
   async function fetchDeals() {
     setLoading(true)
@@ -41,6 +42,10 @@ export default function NegociacoesPage() {
   }
 
   useEffect(() => { fetchDeals() }, [search, productFilter])
+
+  useEffect(() => {
+    fetch('/api/produtos').then(r=>r.json()).then(d=>{ if(d.data?.length>0) setProducts(d.data.map((p:Produto)=>({value:p.name.toLowerCase(),label:p.name}))) })
+  }, [])
 
   async function handleSubmit(data: Partial<Deal>) {
     setSubmitting(true); setError('')
@@ -112,9 +117,7 @@ export default function NegociacoesPage() {
         <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)}
           className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todos os produtos</option>
-          <option value="soja">Soja</option>
-          <option value="milho">Milho</option>
-          <option value="outros">Outros</option>
+          {products.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
       </div>
 

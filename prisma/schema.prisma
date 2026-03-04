@@ -96,3 +96,12 @@ model ActivityLog {
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
 }
+
+model Produto {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  unit      String   @default("sc")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

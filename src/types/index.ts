@@ -3,7 +3,7 @@ export type ClientType = 'producer' | 'buyer'
 export type ClientStatus = 'active' | 'inactive'
 export type LeadSource = 'indication' | 'instagram' | 'call' | 'other'
 export type LeadStage = 'new' | 'contacted' | 'qualified' | 'unqualified'
-export type DealProduct = 'soja' | 'milho' | 'outros'
+export type DealProduct = string
 export type DealSide = 'buy' | 'sell'
 export type DealUnit = 'sc' | 'kg' | 't'
 export type DealStatus = 'new' | 'proposal' | 'negotiating' | 'closed' | 'lost'
@@ -121,4 +121,13 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   pageSize: number
+}
+
+export interface Produto {
+  id: string
+  name: string
+  unit: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
 }

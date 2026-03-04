@@ -10,21 +10,42 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1))
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
+  const startDateParam = searchParams.get('startDate')
+  const endDateParam = searchParams.get('endDate')
+  const region = searchParams.get('region')
 
-  const periodStart = startOfMonth(new Date(year, month - 1, 1))
-  const periodEnd = endOfMonth(new Date(year, month - 1, 1))
+  let periodStart: Date
+  let periodEnd: Date
+  if (startDateParam && endDateParam) {
+    periodStart = new Date(startDateParam + 'T00:00:00')
+    periodEnd = new Date(endDateParam + 'T23:59:59')
+  } else {
+    periodStart = startOfMonth(new Date(year, month - 1, 1))
+    periodEnd = endOfMonth(new Date(year, month - 1, 1))
+  }
 
-  // Closed deals in period
+  let cityFilter: string | undefined
+  let stateFilter: string | undefined
+  if (region) {
+    const parts = region.split(' - ')
+    cityFilter = parts[0]?.trim()
+    stateFilter = parts[1]?.trim()
+  }
+
+  const clientWhere = cityFilter && stateFilter
+    ? { city: cityFilter, state: stateFilter }
+    : undefined
+
   const closedDeals = await prisma.deal.findMany({
     where: {
       status: 'closed',
       closedAt: { gte: periodStart, lte: periodEnd },
+      ...(clientWhere ? { client: clientWhere } : {}),
     },
     include: { client: { select: { id: true, name: true } } },
     orderBy: { closedAt: 'asc' },
   })
 
-  // KPIs
   const totalValue = closedDeals.reduce((s, d) => s + d.totalValue, 0)
   const commissionValue = closedDeals.reduce((s, d) => s + d.commissionValue, 0)
 
@@ -33,18 +54,17 @@ export async function GET(req: NextRequest) {
     volumeByUnit[d.unit] = (volumeByUnit[d.unit] || 0) + d.volume
   }
 
-  // New leads in period
   const newLeadsCount = await prisma.lead.count({
-    where: { createdAt: { gte: periodStart, lte: periodEnd } },
+    where: {
+      createdAt: { gte: periodStart, lte: periodEnd },
+      ...(cityFilter && stateFilter ? { city: cityFilter, state: stateFilter } : {}),
+    },
   })
 
-  // Lead conversion rate
-  const qualifiedLeads = await prisma.lead.count({ where: { stage: 'qualified' } })
   const convertedLeads = await prisma.lead.count({ where: { NOT: { convertedClientId: null } } })
   const totalLeads = await prisma.lead.count()
   const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0
 
-  // Pipeline counts
   const pipelineGroups = await prisma.deal.groupBy({
     by: ['status'],
     _count: { status: true },
@@ -56,7 +76,6 @@ export async function GET(req: NextRequest) {
     pipeline[g.status] = g._count.status
   }
 
-  // Top clients by totalValue this month
   const clientTotals: Record<string, { name: string; totalValue: number; dealsCount: number }> = {}
   for (const d of closedDeals) {
     if (!clientTotals[d.clientId]) {
@@ -70,7 +89,6 @@ export async function GET(req: NextRequest) {
     .sort((a, b) => b.totalValue - a.totalValue)
     .slice(0, 5)
 
-  // Daily revenue
   const dailyMap: Record<string, { totalValue: number; count: number }> = {}
   for (const d of closedDeals) {
     if (!d.closedAt) continue
@@ -83,10 +101,8 @@ export async function GET(req: NextRequest) {
     .map(([date, v]) => ({ date, ...v }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  // Deals by status (for chart)
   const dealsByStatus = Object.entries(pipeline).map(([status, count]) => ({ status, count }))
 
-  // Recent deals (last 10 across all statuses)
   const recentDeals = await prisma.deal.findMany({
     include: { client: { select: { id: true, name: true, type: true } } },
     orderBy: { updatedAt: 'desc' },

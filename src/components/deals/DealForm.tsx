@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Deal, Client } from '@/types'
+import { Deal, Client, Produto } from '@/types'
 
 interface DealFormProps {
   deal?: Deal
@@ -9,7 +9,7 @@ interface DealFormProps {
   loading?: boolean
 }
 
-const PRODUCTS = [
+const DEFAULT_PRODUCTS = [
   { value: 'soja', label: 'Soja' },
   { value: 'milho', label: 'Milho' },
   { value: 'outros', label: 'Outros' },
@@ -29,6 +29,7 @@ const STATUSES = [
 
 export default function DealForm({ deal, onSubmit, onCancel, loading }: DealFormProps) {
   const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState(DEFAULT_PRODUCTS)
   const [form, setForm] = useState({
     clientId: deal?.clientId || '',
     product: deal?.product || 'soja',
@@ -51,13 +52,17 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
   const commissionValue = totalValue * parseFloat(form.commissionPct || '0') / 100
 
   useEffect(() => {
-    fetch('/api/clients')
-      .then((r) => r.json())
-      .then((d) => setClients(d.data || []))
+    fetch('/api/clients').then(r => r.json()).then(d => setClients(d.data || []))
+    fetch('/api/produtos').then(r => r.json()).then(d => {
+      const apiProducts = d.data || []
+      if (apiProducts.length > 0) {
+        setProducts(apiProducts.map((p: Produto) => ({ value: p.name.toLowerCase(), label: p.name })))
+      }
+    })
   }, [])
 
   function set(key: string, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
+    setForm(f => ({ ...f, [key]: value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -80,9 +85,9 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
   const inputClass = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm bg-white'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5'
 
+
   return (
     <form onSubmit={handleSubmit} className="p-6 space-y-5">
-      {/* Client */}
       <div>
         <label className={labelClass}>Cliente *</label>
         <select className={inputClass} value={form.clientId} onChange={(e) => set('clientId', e.target.value)} required>
@@ -93,12 +98,11 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </select>
       </div>
 
-      {/* Product + Side */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Produto *</label>
           <select className={inputClass} value={form.product} onChange={(e) => set('product', e.target.value)}>
-            {PRODUCTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {products.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
         <div>
@@ -110,7 +114,6 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </div>
       </div>
 
-      {/* Volume + Unit */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Volume *</label>
@@ -125,7 +128,6 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </div>
       </div>
 
-      {/* Price + Commission */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Preço Unitário (R$) *</label>
@@ -139,7 +141,6 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </div>
       </div>
 
-      {/* Calculated values */}
       {totalValue > 0 && (
         <div className="bg-green-50 rounded-xl p-4 grid grid-cols-2 gap-4">
           <div>
@@ -157,7 +158,6 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </div>
       )}
 
-      {/* Status + Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelClass}>Status *</label>
@@ -180,14 +180,12 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         </div>
       )}
 
-      {/* Notes */}
       <div>
         <label className={labelClass}>Observações</label>
         <textarea className={inputClass} rows={3} value={form.notes}
           onChange={(e) => set('notes', e.target.value)} placeholder="Detalhes da negociação..." />
       </div>
 
-      {/* Actions */}
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={onCancel}
           className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">

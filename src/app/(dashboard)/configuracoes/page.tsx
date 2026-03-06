@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Shield, Settings, Building2, Save } from 'lucide-react'
+import { Plus, Edit, Trash2, Shield, Settings, Building2, Save, Upload, X } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
 import { User, CompanySettings } from '@/types'
@@ -22,6 +22,8 @@ export default function ConfiguracoesPage() {
   const [companySaving, setCompanySaving] = useState(false)
   const [companySuccess, setCompanySuccess] = useState(false)
   const [companyError, setCompanyError] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   async function fetchData() {
     setLoading(true)
@@ -93,6 +95,25 @@ export default function ConfiguracoesPage() {
     setForm({ name: user.name, email: user.email, password: '', role: user.role })
     setError('')
     setShowModal(true)
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError('')
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    const json = await res.json()
+    if (!res.ok) {
+      setUploadError(json.error || 'Erro ao fazer upload')
+    } else {
+      setCompanyForm((f) => ({ ...f, logoUrl: json.data.url }))
+    }
+    setUploading(false)
+    // Reset input so the same file can be re-selected
+    e.target.value = ''
   }
 
   async function handleCompanySave(e: React.FormEvent) {
@@ -180,26 +201,50 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
           <div>
-            <label className={labelClass}>URL do logotipo</label>
-            <input
-              type="url"
-              className={inputClass}
-              value={companyForm.logoUrl}
-              onChange={(e) => setCompanyForm((f) => ({ ...f, logoUrl: e.target.value }))}
-              placeholder="https://exemplo.com/logo.png"
-            />
-            {companyForm.logoUrl && (
-              <div className="mt-2 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={companyForm.logoUrl}
-                  alt="Logo preview"
-                  className="h-10 object-contain rounded border border-gray-100"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-                <span className="text-xs text-gray-400">Pré-visualização</span>
+            <label className={labelClass}>Logotipo da empresa</label>
+            <div className="flex items-center gap-4">
+              {/* Preview */}
+              {companyForm.logoUrl ? (
+                <div className="relative flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={companyForm.logoUrl}
+                    alt="Logo"
+                    className="h-16 w-16 object-contain rounded-xl border border-gray-200 bg-gray-50 p-1"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCompanyForm((f) => ({ ...f, logoUrl: '' }))}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition"
+                    title="Remover logo"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ) : (
+                <div className="h-16 w-16 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center flex-shrink-0">
+                  <Building2 size={24} className="text-gray-300" />
+                </div>
+              )}
+
+              {/* Upload button */}
+              <div className="flex-1">
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
+                  <Upload size={15} />
+                  {uploading ? 'Enviando...' : (companyForm.logoUrl ? 'Trocar logo' : 'Fazer upload do logo')}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                    disabled={uploading}
+                  />
+                </label>
+                {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG ou WebP — máximo 2MB</p>
               </div>
-            )}
+            </div>
           </div>
           <div className="flex justify-end pt-1">
             <button

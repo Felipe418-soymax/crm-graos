@@ -34,7 +34,7 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
           >
             <Menu size={20} />
           </button>
-          <span className="font-bold text-gray-900 text-base">CRM Grãos</span>
+          <span className="font-bold text-gray-900 text-base">AgriValor CRM</span>
         </div>
 
         <main className="flex-1">

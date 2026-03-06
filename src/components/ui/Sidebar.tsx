@@ -48,8 +48,8 @@ export default function Sidebar({ user, isOpen = true, onClose }: SidebarProps) 
             <Wheat className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-white font-bold text-lg leading-none">CRM Grãos</p>
-            <p className="text-gray-400 text-xs mt-0.5">Corretor de Commodities</p>
+            <p className="text-white font-bold text-lg leading-none">AgriValor CRM</p>
+            <p className="text-gray-400 text-xs mt-0.5">Comércio de Grãos</p>
           </div>
         </div>
         {onClose && (

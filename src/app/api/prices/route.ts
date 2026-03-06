@@ -5,10 +5,11 @@ import { getAuthUser } from '@/lib/auth'
 
 const priceSchema = z.object({
   product: z.string().min(1, 'Produto obrigatório'),
+  produtoId: z.string().optional().nullable(),
   regionLabel: z.string().min(1, 'Região obrigatória'),
   date: z.string().min(1, 'Data obrigatória'),
   price: z.number().positive('Preço deve ser positivo'),
-  unit: z.enum(['sc', 'kg', 't']).default('sc'),
+  unit: z.enum(['sc', 'kg', 't', 'L', 'mL']).default('sc'),
 })
 
 export async function GET(req: NextRequest) {
@@ -30,6 +31,9 @@ export async function GET(req: NextRequest) {
         dateTo ? { date: { lte: new Date(dateTo) } } : {},
       ],
     },
+    include: {
+      produto: { select: { id: true, name: true, unit: true } },
+    },
     orderBy: { date: 'desc' },
     take: 500,
   })
@@ -46,7 +50,14 @@ export async function POST(req: NextRequest) {
     const data = priceSchema.parse(body)
 
     const price = await prisma.priceHistory.create({
-      data: { ...data, date: new Date(data.date) },
+      data: {
+        product: data.product,
+        produtoId: data.produtoId || null,
+        regionLabel: data.regionLabel,
+        date: new Date(data.date),
+        price: data.price,
+        unit: data.unit,
+      },
     })
 
     return NextResponse.json({ data: price }, { status: 201 })

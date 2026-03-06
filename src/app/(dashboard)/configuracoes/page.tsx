@@ -1,9 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Edit, Trash2, Shield, Settings } from 'lucide-react'
+import { Plus, Edit, Trash2, Shield, Settings, Building2, Save } from 'lucide-react'
 import Modal from '@/components/ui/Modal'
 import Badge from '@/components/ui/Badge'
-import { User } from '@/types'
+import { User, CompanySettings } from '@/types'
 import { formatDate } from '@/lib/utils'
 
 export default function ConfiguracoesPage() {
@@ -16,11 +16,19 @@ export default function ConfiguracoesPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'seller' })
 
+  // Company settings state
+  const [company, setCompany] = useState<CompanySettings | null>(null)
+  const [companyForm, setCompanyForm] = useState({ companyName: '', region: '', logoUrl: '' })
+  const [companySaving, setCompanySaving] = useState(false)
+  const [companySuccess, setCompanySuccess] = useState(false)
+  const [companyError, setCompanyError] = useState('')
+
   async function fetchData() {
     setLoading(true)
-    const [usersRes, meRes] = await Promise.all([
+    const [usersRes, meRes, companyRes] = await Promise.all([
       fetch('/api/users'),
       fetch('/api/auth/me'),
+      fetch('/api/company'),
     ])
     if (usersRes.ok) {
       const d = await usersRes.json()
@@ -29,6 +37,18 @@ export default function ConfiguracoesPage() {
     if (meRes.ok) {
       const d = await meRes.json()
       setCurrentUser(d.user)
+    }
+    if (companyRes.ok) {
+      const d = await companyRes.json()
+      const s: CompanySettings | null = d.data
+      setCompany(s)
+      if (s) {
+        setCompanyForm({
+          companyName: s.companyName || '',
+          region: s.region || '',
+          logoUrl: s.logoUrl || '',
+        })
+      }
     }
     setLoading(false)
   }
@@ -75,6 +95,31 @@ export default function ConfiguracoesPage() {
     setShowModal(true)
   }
 
+  async function handleCompanySave(e: React.FormEvent) {
+    e.preventDefault()
+    setCompanySaving(true)
+    setCompanyError('')
+    setCompanySuccess(false)
+    const res = await fetch('/api/company', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName: companyForm.companyName || null,
+        region: companyForm.region || null,
+        logoUrl: companyForm.logoUrl || null,
+      }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      setCompanyError(json.error || 'Erro ao salvar')
+    } else {
+      setCompany(json.data)
+      setCompanySuccess(true)
+      setTimeout(() => setCompanySuccess(false), 3000)
+    }
+    setCompanySaving(false)
+  }
+
   const inputClass = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm bg-white'
   const labelClass = 'block text-sm font-medium text-gray-700 mb-1.5'
 
@@ -84,7 +129,7 @@ export default function ConfiguracoesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-500 text-sm mt-1">Gerenciamento de usuários e sistema</p>
+          <p className="text-gray-500 text-sm mt-1">Gerenciamento de empresa, usuários e sistema</p>
         </div>
         {isAdmin && (
           <button
@@ -95,6 +140,78 @@ export default function ConfiguracoesPage() {
             Novo Usuário
           </button>
         )}
+      </div>
+
+      {/* Company settings */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-5">
+          <Building2 size={18} className="text-green-600" />
+          <h3 className="font-semibold text-gray-900">Dados da Empresa</h3>
+        </div>
+        <form onSubmit={handleCompanySave} className="space-y-4">
+          {companyError && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm">{companyError}</div>
+          )}
+          {companySuccess && (
+            <div className="bg-green-50 text-green-700 px-4 py-3 rounded-xl text-sm font-medium">
+              ✓ Configurações salvas com sucesso!
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Nome da empresa</label>
+              <input
+                type="text"
+                className={inputClass}
+                value={companyForm.companyName}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, companyName: e.target.value }))}
+                placeholder="Ex: Soymax Grãos Ltda"
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Região de atuação</label>
+              <input
+                type="text"
+                className={inputClass}
+                value={companyForm.region}
+                onChange={(e) => setCompanyForm((f) => ({ ...f, region: e.target.value }))}
+                placeholder="Ex: Mato Grosso do Sul"
+              />
+            </div>
+          </div>
+          <div>
+            <label className={labelClass}>URL do logotipo</label>
+            <input
+              type="url"
+              className={inputClass}
+              value={companyForm.logoUrl}
+              onChange={(e) => setCompanyForm((f) => ({ ...f, logoUrl: e.target.value }))}
+              placeholder="https://exemplo.com/logo.png"
+            />
+            {companyForm.logoUrl && (
+              <div className="mt-2 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={companyForm.logoUrl}
+                  alt="Logo preview"
+                  className="h-10 object-contain rounded border border-gray-100"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+                <span className="text-xs text-gray-400">Pré-visualização</span>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end pt-1">
+            <button
+              type="submit"
+              disabled={companySaving}
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition disabled:opacity-60"
+            >
+              <Save size={16} />
+              {companySaving ? 'Salvando...' : 'Salvar empresa'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Current user info */}
@@ -198,7 +315,7 @@ export default function ConfiguracoesPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-gray-400 text-xs mb-1">Versão</p>
-            <p className="text-gray-700 font-medium">CRM Grãos v0.1.0</p>
+            <p className="text-gray-700 font-medium">CRM Grãos v0.2.0</p>
           </div>
           <div>
             <p className="text-gray-400 text-xs mb-1">Banco de dados</p>
@@ -210,7 +327,7 @@ export default function ConfiguracoesPage() {
           </div>
           <div>
             <p className="text-gray-400 text-xs mb-1">Ambiente</p>
-            <p className="text-gray-700 font-medium">Desenvolvimento</p>
+            <p className="text-gray-700 font-medium">Produção</p>
           </div>
         </div>
       </div>

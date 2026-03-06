@@ -18,6 +18,8 @@ const UNITS = [
   { value: 'sc', label: 'Sacas (sc)' },
   { value: 'kg', label: 'Quilogramas (kg)' },
   { value: 't', label: 'Toneladas (t)' },
+  { value: 'L', label: 'Litros (L)' },
+  { value: 'mL', label: 'Mililitros (mL)' },
 ]
 const STATUSES = [
   { value: 'new', label: 'Novo' },

@@ -131,3 +131,13 @@ export interface Produto {
   createdAt: string
   updatedAt: string
 }
+
+export interface CompanySettings {
+  id: string
+  companyName: string | null
+  region: string | null
+  logoUrl: string | null
+  userId: string
+  createdAt: string
+  updatedAt: string
+}

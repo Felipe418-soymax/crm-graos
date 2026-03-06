@@ -84,6 +84,8 @@ export const UNIT_LABELS: Record<string, string> = {
   sc: 'Sacas',
   kg: 'Kg',
   t: 'Toneladas',
+  L: 'Litros',
+  mL: 'Mililitros',
 }
 
 export function generateCSV(headers: string[], rows: string[][]): string {

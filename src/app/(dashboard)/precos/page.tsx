@@ -2,20 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Trash2, BarChart3 } from 'lucide-react'
-import { PriceHistory } from '@/types'
+import { PriceHistory, Produto } from '@/types'
 import Modal from '@/components/ui/Modal'
-import { formatDate } from '@/lib/utils'
+import { formatDate, UNIT_LABELS } from '@/lib/utils'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { format, parseISO, isValid } from 'date-fns'
 
 const COLORS = ['#16a34a', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
 
+const ALL_UNITS = [
+  { value: 'sc', label: 'Sacas (sc)' },
+  { value: 'kg', label: 'Quilogramas (kg)' },
+  { value: 't', label: 'Toneladas (t)' },
+  { value: 'L', label: 'Litros (L)' },
+  { value: 'mL', label: 'Mililitros (mL)' },
+]
+
 const safeISODateOnly = (value: string) => {
-  // tenta pegar YYYY-MM-DD mesmo se vier com timestamp
   if (typeof value !== 'string') return ''
   const base = value.split('T')[0]
   const d = parseISO(base)
-  if (!isValid(d)) return base // não quebra
+  if (!isValid(d)) return base
   return format(d, 'yyyy-MM-dd')
 }
 
@@ -26,28 +33,38 @@ const safeLabelDDMM = (dateStr: string) => {
   return format(d, 'dd/MM')
 }
 
+const emptyForm = {
+  produtoId: '',
+  product: '',
+  regionLabel: '',
+  date: new Date().toISOString().split('T')[0],
+  price: '',
+  unit: 'sc',
+}
+
 export default function PrecosPage() {
   const [prices, setPrices] = useState<PriceHistory[]>([])
+  const [produtos, setProdutos] = useState<Produto[]>([])
   const [loading, setLoading] = useState(true)
-  const [productFilter, setProductFilter] = useState('soja')
+  const [productFilter, setProductFilter] = useState('')
   const [regionFilter, setRegionFilter] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({
-    product: 'soja',
-    regionLabel: '',
-    date: new Date().toISOString().split('T')[0],
-    price: '',
-    unit: 'sc',
-  })
+  const [form, setForm] = useState(emptyForm)
+
+  // Busca produtos cadastrados
+  useEffect(() => {
+    fetch('/api/produtos')
+      .then((r) => r.json())
+      .then((d) => setProdutos(d.data || []))
+  }, [])
 
   const fetchPrices = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams()
     if (productFilter) params.set('product', productFilter)
     if (regionFilter) params.set('region', regionFilter)
-
     const res = await fetch(`/api/prices?${params}`)
     const data = await res.json()
     setPrices(data.data || [])
@@ -58,6 +75,16 @@ export default function PrecosPage() {
     fetchPrices()
   }, [fetchPrices])
 
+  // Ao selecionar produto, preenche nome e unidade automaticamente
+  function handleProdutoChange(produtoId: string) {
+    const p = produtos.find((p) => p.id === produtoId)
+    if (p) {
+      setForm((f) => ({ ...f, produtoId: p.id, product: p.name, unit: p.unit }))
+    } else {
+      setForm((f) => ({ ...f, produtoId: '', product: '' }))
+    }
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
@@ -66,7 +93,14 @@ export default function PrecosPage() {
     const res = await fetch('/api/prices', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, price: parseFloat(form.price), date: safeISODateOnly(form.date) }),
+      body: JSON.stringify({
+        product: form.product,
+        produtoId: form.produtoId || null,
+        regionLabel: form.regionLabel,
+        date: safeISODateOnly(form.date),
+        price: parseFloat(form.price),
+        unit: form.unit,
+      }),
     })
 
     const json = await res.json()
@@ -79,13 +113,7 @@ export default function PrecosPage() {
     setShowModal(false)
     await fetchPrices()
     setSubmitting(false)
-    setForm({
-      product: 'soja',
-      regionLabel: '',
-      date: new Date().toISOString().split('T')[0],
-      price: '',
-      unit: 'sc',
-    })
+    setForm(emptyForm)
   }
 
   async function handleDelete(id: string) {
@@ -94,7 +122,6 @@ export default function PrecosPage() {
     fetchPrices()
   }
 
-  // ===== Build chart data (seguro + compatível com build) =====
   const regions = useMemo(
     () => Array.from(new Set(prices.map((p) => p.regionLabel))).sort(),
     [prices]
@@ -104,22 +131,15 @@ export default function PrecosPage() {
     const sortedPrices = [...prices].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
-
     const dateMap: Record<string, Record<string, number>> = {}
-
     for (const p of sortedPrices) {
       const key = (p.date || '').split('T')[0]
       if (!key) continue
       if (!dateMap[key]) dateMap[key] = {}
       dateMap[key][p.regionLabel] = p.price
     }
-
     return Object.entries(dateMap)
-      .map(([date, vals]) => ({
-        date,
-        label: safeLabelDDMM(date),
-        ...vals,
-      }))
+      .map(([date, vals]) => ({ date, label: safeLabelDDMM(date), ...vals }))
       .slice(-30)
   }, [prices])
 
@@ -135,10 +155,7 @@ export default function PrecosPage() {
           <p className="text-gray-500 text-sm mt-1">Acompanhe cotações por produto e região</p>
         </div>
         <button
-          onClick={() => {
-            setError('')
-            setShowModal(true)
-          }}
+          onClick={() => { setError(''); setForm(emptyForm); setShowModal(true) }}
           className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shadow-sm"
         >
           <Plus size={18} />
@@ -154,9 +171,9 @@ export default function PrecosPage() {
           className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <option value="">Todos os produtos</option>
-          <option value="soja">Soja</option>
-          <option value="milho">Milho</option>
-          <option value="outros">Outros</option>
+          {produtos.map((p) => (
+            <option key={p.id} value={p.name}>{p.name}</option>
+          ))}
         </select>
 
         <input
@@ -174,7 +191,6 @@ export default function PrecosPage() {
           <h3 className="font-semibold text-gray-900 mb-4">
             Evolução de preços — {productFilter || 'todos'} (últimos 30 dias)
           </h3>
-
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -187,7 +203,7 @@ export default function PrecosPage() {
                 domain={['auto', 'auto']}
               />
               <Tooltip
-                formatter={(v: any, name: string) => {
+                formatter={(v: unknown, name: string) => {
                   const num = typeof v === 'number' ? v : Number(v)
                   if (!Number.isFinite(num)) return [`R$ 0,00`, name]
                   return [`R$ ${num.toFixed(2)}`, name]
@@ -195,7 +211,6 @@ export default function PrecosPage() {
                 contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-
               {regions.slice(0, 5).map((region, i) => (
                 <Line
                   key={region}
@@ -235,17 +250,16 @@ export default function PrecosPage() {
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
-
               <tbody className="divide-y divide-gray-50">
                 {prices.map((price) => (
                   <tr key={price.id} className="hover:bg-gray-50/50 transition">
                     <td className="px-6 py-3 text-gray-600">{formatDate(price.date)}</td>
-                    <td className="px-4 py-3 capitalize text-gray-900 font-medium">{price.product}</td>
+                    <td className="px-4 py-3 text-gray-900 font-medium">{price.product}</td>
                     <td className="px-4 py-3 text-gray-600">{price.regionLabel}</td>
                     <td className="px-4 py-3 text-right font-bold text-gray-900">
                       R$ {price.price.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{price.unit}</td>
+                    <td className="px-4 py-3 text-gray-500">{UNIT_LABELS[price.unit] || price.unit}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => handleDelete(price.id)}
@@ -277,15 +291,27 @@ export default function PrecosPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Produto *</label>
-              <select
-                className={inputClass}
-                value={form.product}
-                onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
-              >
-                <option value="soja">Soja</option>
-                <option value="milho">Milho</option>
-                <option value="outros">Outros</option>
-              </select>
+              {produtos.length > 0 ? (
+                <select
+                  className={inputClass}
+                  value={form.produtoId}
+                  onChange={(e) => handleProdutoChange(e.target.value)}
+                  required
+                >
+                  <option value="">Selecione...</option>
+                  {produtos.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  className={inputClass}
+                  value={form.product}
+                  onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
+                  placeholder="Nome do produto"
+                  required
+                />
+              )}
             </div>
 
             <div>
@@ -295,9 +321,9 @@ export default function PrecosPage() {
                 value={form.unit}
                 onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
               >
-                <option value="sc">Sacas (sc)</option>
-                <option value="kg">Kg</option>
-                <option value="t">Toneladas (t)</option>
+                {ALL_UNITS.map((u) => (
+                  <option key={u.value} value={u.value}>{u.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -361,4 +387,3 @@ export default function PrecosPage() {
     </div>
   )
 }
-1000

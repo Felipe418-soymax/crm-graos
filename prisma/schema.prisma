@@ -16,7 +16,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  activities ActivityLog[]
+  activities      ActivityLog[]
+  companySettings CompanySettings?
 }
 
 model Client {
@@ -63,7 +64,7 @@ model Deal {
   product           String    // soja | milho | outros
   side              String    // buy | sell
   volume            Float
-  unit              String    // sc | kg | t
+  unit              String    // sc | kg | t | L | mL
   unitPrice         Float
   totalValue        Float
   commissionPct     Float     @default(0.8)
@@ -79,10 +80,12 @@ model Deal {
 model PriceHistory {
   id          String   @id @default(cuid())
   product     String
+  produtoId   String?
+  produto     Produto? @relation(fields: [produtoId], references: [id])
   regionLabel String
   date        DateTime
   price       Float
-  unit        String   // sc | kg | t
+  unit        String   // sc | kg | t | L | mL
   createdAt   DateTime @default(now())
 }
 
@@ -98,10 +101,22 @@ model ActivityLog {
 }
 
 model Produto {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  unit      String   @default("sc")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String         @id @default(cuid())
+  name           String         @unique
+  unit           String         @default("sc")
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  priceHistories PriceHistory[]
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  companyName String?
+  region      String?
+  logoUrl     String?
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

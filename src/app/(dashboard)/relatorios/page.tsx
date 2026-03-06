@@ -1,68 +1,206 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Download, FileText } from 'lucide-react'
-import { MonthlyReport } from '@/types'
+import { Download, FileText, Calendar, FileDown } from 'lucide-react'
+import { MonthlyReport, CompanySettings } from '@/types'
 import { formatCurrency, formatNumber, formatDate, UNIT_LABELS, getCurrentMonthYear } from '@/lib/utils'
 import { DealStatusBadge } from '@/components/ui/Badge'
 import Card, { CardHeader } from '@/components/ui/Card'
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
 
+type PeriodType = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+
+const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
+  { value: 'daily', label: 'Diário' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'monthly', label: 'Mensal' },
+  { value: 'yearly', label: 'Anual' },
+  { value: 'custom', label: 'Personalizado' },
+]
+
+function buildQuery(
+  periodType: PeriodType,
+  month: number,
+  year: number,
+  singleDate: string,
+  startDate: string,
+  endDate: string,
+) {
+  const base = `periodType=${periodType}`
+  if (periodType === 'daily') return `${base}&startDate=${singleDate}`
+  if (periodType === 'weekly') return `${base}&startDate=${singleDate}`
+  if (periodType === 'monthly') return `${base}&month=${month}&year=${year}`
+  if (periodType === 'yearly') return `${base}&year=${year}`
+  if (periodType === 'custom') return `${base}&startDate=${startDate}&endDate=${endDate}`
+  return base
+}
+
 export default function RelatoriosPage() {
   const { month: cm, year: cy } = getCurrentMonthYear()
+  const [periodType, setPeriodType] = useState<PeriodType>('monthly')
   const [month, setMonth] = useState(cm)
   const [year, setYear] = useState(cy)
+  const todayStr = new Date().toISOString().split('T')[0]
+  const [singleDate, setSingleDate] = useState(todayStr)
+  const [startDate, setStartDate] = useState(todayStr)
+  const [endDate, setEndDate] = useState(todayStr)
+
   const [report, setReport] = useState<MonthlyReport | null>(null)
   const [loading, setLoading] = useState(true)
+  const [company, setCompany] = useState<CompanySettings | null>(null)
+  const [exportingPdf, setExportingPdf] = useState(false)
+
+  const query = buildQuery(periodType, month, year, singleDate, startDate, endDate)
+
+  useEffect(() => {
+    fetch('/api/company').then(r => r.json()).then(d => setCompany(d.data)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/reports/monthly?month=${month}&year=${year}`)
+    fetch(`/api/reports/monthly?${query}`)
       .then((r) => r.json())
       .then((d) => { setReport(d.data); setLoading(false) })
       .catch(() => setLoading(false))
-  }, [month, year])
+  }, [query])
 
   async function handleExportCSV() {
-    const res = await fetch(`/api/reports/monthly?month=${month}&year=${year}&export=csv`)
+    const res = await fetch(`/api/reports/monthly?${query}&export=csv`)
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `relatorio-${month}-${year}.csv`
+    a.download = `relatorio-${periodType}-${Date.now()}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
 
+  async function handleExportPDF() {
+    if (!report) return
+    setExportingPdf(true)
+    try {
+      const { exportReportPDF } = await import('@/lib/exportPdf')
+      exportReportPDF(report, company?.companyName, company?.region)
+    } finally {
+      setExportingPdf(false)
+    }
+  }
+
   const years = [cy - 2, cy - 1, cy, cy + 1]
+
+  const selectClass = 'px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500'
+  const inputClass = 'px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500'
 
   return (
     <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Relatório Mensal</h1>
-          <p className="text-gray-500 text-sm mt-1">Análise de desempenho por período</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
-              {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-            </select>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))}
-              className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
-              {years.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Relatórios</h1>
+            <p className="text-gray-500 text-sm mt-1">Análise de desempenho por período</p>
           </div>
-          <button
-            onClick={handleExportCSV}
-            disabled={!report || report.deals.length === 0}
-            className="inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Download size={16} />
-            Exportar CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportCSV}
+              disabled={!report || report.deals.length === 0}
+              className="inline-flex items-center gap-2 bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Download size={16} />
+              CSV
+            </button>
+            <button
+              onClick={handleExportPDF}
+              disabled={!report || report.deals.length === 0 || exportingPdf}
+              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileDown size={16} />
+              {exportingPdf ? 'Gerando...' : 'PDF'}
+            </button>
+          </div>
+        </div>
+
+        {/* Period filters */}
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-gray-400" />
+              <span className="text-sm font-medium text-gray-600">Período:</span>
+            </div>
+
+            {/* Period type selector */}
+            <select
+              value={periodType}
+              onChange={(e) => setPeriodType(e.target.value as PeriodType)}
+              className={selectClass}
+            >
+              {PERIOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+
+            {/* Daily: single date */}
+            {periodType === 'daily' && (
+              <input
+                type="date"
+                value={singleDate}
+                onChange={(e) => setSingleDate(e.target.value)}
+                className={inputClass}
+              />
+            )}
+
+            {/* Weekly: reference date */}
+            {periodType === 'weekly' && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">Semana de:</span>
+                <input
+                  type="date"
+                  value={singleDate}
+                  onChange={(e) => setSingleDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+
+            {/* Monthly: month + year */}
+            {periodType === 'monthly' && (
+              <>
+                <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className={selectClass}>
+                  {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                </select>
+                <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={selectClass}>
+                  {years.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </>
+            )}
+
+            {/* Yearly: year only */}
+            {periodType === 'yearly' && (
+              <select value={year} onChange={(e) => setYear(Number(e.target.value))} className={selectClass}>
+                {years.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+            )}
+
+            {/* Custom: startDate + endDate */}
+            {periodType === 'custom' && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className={inputClass}
+                />
+                <span className="text-xs text-gray-400">até</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  min={startDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -94,7 +232,7 @@ export default function RelatoriosPage() {
                 ) : (
                   Object.entries(report.summary.volumeByUnit).map(([unit, vol]) => (
                     <p key={unit} className="text-sm font-bold text-gray-900">
-                      {formatNumber(vol)} <span className="text-gray-500 font-normal">{UNIT_LABELS[unit] || unit}</span>
+                      {formatNumber(vol as number)} <span className="text-gray-500 font-normal">{UNIT_LABELS[unit] || unit}</span>
                     </p>
                   ))
                 )}
@@ -105,7 +243,7 @@ export default function RelatoriosPage() {
           {/* Top clients */}
           {report.topClients.length > 0 && (
             <Card>
-              <CardHeader title="Top Clientes do Mês" subtitle="Ordenado por volume financeiro" />
+              <CardHeader title="Top Clientes do Período" subtitle="Ordenado por volume financeiro" />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

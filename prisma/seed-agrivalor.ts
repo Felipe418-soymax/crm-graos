@@ -161,7 +161,7 @@ async function main() {
       unitPrice,
       totalValue,
       commissionPct,
-      commissionValue: parseFloat(commissionValue),
+      commissionValue,
       status,
       closedAt: status === 'closed' ? createdAt : null,
       expectedCloseDate: daysUntilClose !== undefined ? days(daysUntilClose) : null,

@@ -1,23 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { readFile } from 'fs/promises'
-import { join, extname } from 'path'
 
-const UPLOAD_DIR =
-  process.env.NODE_ENV === 'production'
-    ? '/var/lib/crm-graos/uploads'
-    : join(process.cwd(), 'uploads')
-
-const CONTENT_TYPES: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
-}
-
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const settings = await prisma.companySettings.findFirst({
       where: { logoUrl: { not: null } },
@@ -26,22 +10,18 @@ export async function GET() {
     })
 
     if (settings?.logoUrl) {
-      const filename = settings.logoUrl.split('/').pop()!
-      const ext = extname(filename).toLowerCase()
-      const contentType = CONTENT_TYPES[ext] ?? 'image/png'
-
-      const file = await readFile(join(UPLOAD_DIR, filename))
-
-      return new NextResponse(file, {
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=3600',
-        },
+      // Redireciona para o URL da logo que já está funcionando (/api/uploads/...)
+      const absoluteUrl = new URL(settings.logoUrl, req.nextUrl.origin)
+      return NextResponse.redirect(absoluteUrl, {
+        headers: { 'Cache-Control': 'no-store' },
       })
     }
-  } catch {
-    // Logo não encontrada — retorna 204 (sem conteúdo)
+  } catch (err) {
+    console.error('[favicon] erro:', err)
   }
 
-  return new NextResponse(null, { status: 204 })
+  return new NextResponse(null, {
+    status: 204,
+    headers: { 'Cache-Control': 'no-store' },
+  })
 }

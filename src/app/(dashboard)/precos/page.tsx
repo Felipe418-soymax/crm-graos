@@ -122,26 +122,43 @@ export default function PrecosPage() {
     fetchPrices()
   }
 
-  const regions = useMemo(
-    () => Array.from(new Set(prices.map((p) => p.regionLabel))).sort(),
-    [prices]
-  )
+  // Quando um produto está selecionado → linhas por região
+  // Quando "Todos os produtos" → linhas por produto
+  const groupMode = productFilter ? 'region' : 'product'
+
+  const chartGroups = useMemo(() => {
+    if (groupMode === 'region')
+      return Array.from(new Set(prices.map((p) => p.regionLabel))).sort()
+    return Array.from(new Set(prices.map((p) => p.product))).sort()
+  }, [prices, groupMode])
 
   const chartData = useMemo(() => {
     const sortedPrices = [...prices].sort(
       (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
     )
-    const dateMap: Record<string, Record<string, number>> = {}
+    // Acumula por data + chave de grupo (para depois calcular média)
+    const dateMap: Record<string, Record<string, number[]>> = {}
     for (const p of sortedPrices) {
       const key = (p.date || '').split('T')[0]
       if (!key) continue
+      const groupKey = groupMode === 'region' ? p.regionLabel : p.product
       if (!dateMap[key]) dateMap[key] = {}
-      dateMap[key][p.regionLabel] = p.price
+      if (!dateMap[key][groupKey]) dateMap[key][groupKey] = []
+      dateMap[key][groupKey].push(p.price)
     }
     return Object.entries(dateMap)
-      .map(([date, vals]) => ({ date, label: safeLabelDDMM(date), ...vals }))
+      .map(([date, vals]) => ({
+        date,
+        label: safeLabelDDMM(date),
+        ...Object.fromEntries(
+          Object.entries(vals).map(([k, arr]) => [
+            k,
+            parseFloat((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2)),
+          ])
+        ),
+      }))
       .slice(-30)
-  }, [prices])
+  }, [prices, groupMode])
 
   const inputClass =
     'w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-sm bg-white'
@@ -186,11 +203,14 @@ export default function PrecosPage() {
       </div>
 
       {/* Chart */}
-      {chartData.length > 0 && regions.length > 0 && (
+      {chartData.length > 0 && chartGroups.length > 0 && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">
-            Evolução de preços — {productFilter || 'todos'} (últimos 30 dias)
+          <h3 className="font-semibold text-gray-900 mb-1">
+            Evolução de preços — {productFilter || 'todos os produtos'} (últimos 30 dias)
           </h3>
+          <p className="text-xs text-gray-400 mb-4">
+            {groupMode === 'region' ? 'Cor por região · preço do produto selecionado' : 'Cor por produto · média entre regiões'}
+          </p>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
@@ -206,20 +226,25 @@ export default function PrecosPage() {
                 formatter={(v: unknown, name: string) => {
                   const num = typeof v === 'number' ? v : Number(v)
                   if (!Number.isFinite(num)) return [`R$ 0,00`, name]
-                  return [`R$ ${num.toFixed(2)}`, name]
+                  // No modo de produto único, "name" é a região → exibir "Produto · Região"
+                  const label = groupMode === 'region'
+                    ? `${productFilter} · ${name}`
+                    : name
+                  return [`R$ ${num.toFixed(2).replace('.', ',')}`, label]
                 }}
                 contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb' }}
               />
               <Legend wrapperStyle={{ fontSize: '12px' }} />
-              {regions.slice(0, 5).map((region, i) => (
+              {chartGroups.slice(0, 5).map((group, i) => (
                 <Line
-                  key={region}
+                  key={group}
                   type="monotone"
-                  dataKey={region}
+                  dataKey={group}
                   stroke={COLORS[i % COLORS.length]}
                   strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
+                  name={group}
                 />
               ))}
             </LineChart>

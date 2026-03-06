@@ -242,7 +242,7 @@ export default function ConfiguracoesPage() {
                   />
                 </label>
                 {uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
-                <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG ou WebP — máximo 2MB</p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG ou WebP — máximo 5MB</p>
               </div>
             </div>
           </div>

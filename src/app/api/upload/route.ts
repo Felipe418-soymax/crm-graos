@@ -9,7 +9,7 @@ const UPLOAD_DIR =
     : join(process.cwd(), 'uploads')
 
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp', 'image/svg+xml']
-const MAX_SIZE = 2 * 1024 * 1024 // 2MB
+const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
 export async function POST(req: NextRequest) {
   const authUser = await getAuthUser()

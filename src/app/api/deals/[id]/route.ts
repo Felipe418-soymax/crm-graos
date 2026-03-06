@@ -5,7 +5,7 @@ import { getAuthUser } from '@/lib/auth'
 
 const updateSchema = z.object({
   clientId: z.string().optional(),
-  product: z.enum(['soja', 'milho', 'outros']).optional(),
+  product: z.string().min(1).optional(),
   side: z.enum(['buy', 'sell']).optional(),
   volume: z.number().positive().optional(),
   unit: z.enum(['sc', 'kg', 't']).optional(),

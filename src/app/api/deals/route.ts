@@ -5,7 +5,7 @@ import { getAuthUser } from '@/lib/auth'
 
 const dealSchema = z.object({
   clientId: z.string().min(1, 'Cliente obrigatório'),
-  product: z.enum(['soja', 'milho', 'outros']),
+  product: z.string().min(1, 'Produto obrigatório'),
   side: z.enum(['buy', 'sell']),
   volume: z.number().positive('Volume deve ser positivo'),
   unit: z.enum(['sc', 'kg', 't']),

@@ -150,7 +150,7 @@ async function main() {
     daysUntilClose?: number
   ) {
     const totalValue = parseFloat((volume * unitPrice).toFixed(2))
-    const commissionValue = parseFloat((totalValue * commissionPct) / 100).toFixed(2)
+    const commissionValue = parseFloat((totalValue * commissionPct / 100).toFixed(2))
     const createdAt = days(-daysAgo)
     return {
       clientId,

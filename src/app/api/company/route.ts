@@ -6,7 +6,7 @@ import { getAuthUser } from '@/lib/auth'
 const companySchema = z.object({
   companyName: z.string().optional().nullable(),
   region: z.string().optional().nullable(),
-  logoUrl: z.string().url('URL inválida').optional().nullable().or(z.literal('')),
+  logoUrl: z.string().optional().nullable(),
 })
 
 export async function GET() {

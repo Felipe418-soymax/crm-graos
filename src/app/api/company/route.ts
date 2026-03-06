@@ -14,7 +14,7 @@ export async function GET() {
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const settings = await prisma.companySettings.findUnique({
-    where: { userId: authUser.id },
+    where: { userId: authUser.sub },
   })
 
   return NextResponse.json({ data: settings })
@@ -29,14 +29,14 @@ export async function PATCH(req: NextRequest) {
     const data = companySchema.parse(body)
 
     const settings = await prisma.companySettings.upsert({
-      where: { userId: authUser.id },
+      where: { userId: authUser.sub },
       update: {
         companyName: data.companyName ?? null,
         region: data.region ?? null,
         logoUrl: data.logoUrl || null,
       },
       create: {
-        userId: authUser.id,
+        userId: authUser.sub,
         companyName: data.companyName ?? null,
         region: data.region ?? null,
         logoUrl: data.logoUrl || null,

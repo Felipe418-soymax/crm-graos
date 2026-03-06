@@ -5,10 +5,11 @@ import Sidebar from './Sidebar'
 
 interface DashboardShellProps {
   user?: { name: string; email: string; role: string } | null
+  logoUrl?: string | null
   children: React.ReactNode
 }
 
-export default function DashboardShell({ user, children }: DashboardShellProps) {
+export default function DashboardShell({ user, logoUrl, children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -22,6 +23,7 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
 
       <Sidebar
         user={user}
+        logoUrl={logoUrl}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />

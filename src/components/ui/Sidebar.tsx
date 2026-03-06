@@ -6,6 +6,7 @@ import {
   LayoutDashboard, Users, UserPlus, TrendingUp, BarChart3,
   FileText, Settings, LogOut, Wheat, ChevronRight, Package, X
 } from 'lucide-react'
+import Image from 'next/image'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,11 +21,12 @@ const navItems = [
 
 interface SidebarProps {
   user?: { name: string; email: string; role: string } | null
+  logoUrl?: string | null
   isOpen?: boolean
   onClose?: () => void
 }
 
-export default function Sidebar({ user, isOpen = true, onClose }: SidebarProps) {
+export default function Sidebar({ user, logoUrl, isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -44,9 +46,22 @@ export default function Sidebar({ user, isOpen = true, onClose }: SidebarProps) 
     >
       <div className="p-6 border-b border-gray-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Wheat className="w-5 h-5 text-white" />
-          </div>
+          {logoUrl ? (
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex-shrink-0 bg-white flex items-center justify-center">
+              <Image
+                src={logoUrl}
+                alt="Logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Wheat className="w-5 h-5 text-white" />
+            </div>
+          )}
           <div>
             <p className="text-white font-bold text-lg leading-none">AgriValor CRM</p>
             <p className="text-gray-400 text-xs mt-0.5">Comércio de Grãos</p>

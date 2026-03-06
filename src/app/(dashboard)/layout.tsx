@@ -13,13 +13,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const payload = await verifyJWT(token)
   if (!payload) redirect('/login')
 
-  const user = await prisma.user.findUnique({
-    where: { id: payload.sub },
-    select: { name: true, email: true, role: true },
-  })
+  const [user, companySettings] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { name: true, email: true, role: true },
+    }),
+    prisma.companySettings.findUnique({
+      where: { userId: payload.sub },
+      select: { logoUrl: true },
+    }),
+  ])
 
   return (
-    <DashboardShell user={user}>
+    <DashboardShell user={user} logoUrl={companySettings?.logoUrl}>
       {children}
     </DashboardShell>
   )

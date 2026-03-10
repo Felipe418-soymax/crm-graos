@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const deal = await prisma.deal.findUnique({
-    where: { id: params.id },
+    where: { id: params.id, userId: authUser.sub },
     include: { client: { select: { id: true, name: true, type: true } } },
   })
   if (!deal) return NextResponse.json({ error: 'Negociação não encontrada' }, { status: 404 })
@@ -36,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   try {
     const body = await req.json()
     const data = updateSchema.parse(body)
-    const prevDeal = await prisma.deal.findUnique({ where: { id: params.id } })
+    const prevDeal = await prisma.deal.findUnique({ where: { id: params.id, userId: authUser.sub } })
     if (!prevDeal) return NextResponse.json({ error: 'Negociação não encontrada' }, { status: 404 })
 
     // Recalculate totals if financial fields changed
@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const deal = await prisma.deal.update({
-      where: { id: params.id },
+      where: { id: params.id, userId: authUser.sub },
       data: {
         ...data,
         totalValue,
@@ -97,6 +97,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (authUser.role !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
-  await prisma.deal.delete({ where: { id: params.id } })
+  await prisma.deal.delete({ where: { id: params.id, userId: authUser.sub } })
   return NextResponse.json({ message: 'Negociação excluída' })
 }

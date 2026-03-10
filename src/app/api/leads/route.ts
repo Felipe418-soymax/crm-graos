@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
 
   const leads = await prisma.lead.findMany({
     where: {
+      userId: authUser.sub,
       AND: [
         search ? {
           OR: [
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     const data = leadSchema.parse(body)
 
     const lead = await prisma.lead.create({
-      data: { ...data, email: data.email || null },
+      data: { ...data, email: data.email || null, userId: authUser.sub },
     })
 
     await prisma.activityLog.create({

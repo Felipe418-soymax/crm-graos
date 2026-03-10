@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
   const client = await prisma.client.findUnique({
-    where: { id: params.id },
+    where: { id: params.id, userId: authUser.sub },
     include: {
       deals: {
         orderBy: { createdAt: 'desc' },
@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (data.email === '') updateData.email = null
 
     const client = await prisma.client.update({
-      where: { id: params.id },
+      where: { id: params.id, userId: authUser.sub },
       data: updateData,
     })
 
@@ -87,7 +87,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
   if (authUser.role !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
-  const dealsCount = await prisma.deal.count({ where: { clientId: params.id } })
+  const dealsCount = await prisma.deal.count({ where: { clientId: params.id, userId: authUser.sub } })
   if (dealsCount > 0) {
     return NextResponse.json(
       { error: 'Não é possível excluir cliente com negociações' },
@@ -95,6 +95,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     )
   }
 
-  await prisma.client.delete({ where: { id: params.id } })
+  await prisma.client.delete({ where: { id: params.id, userId: authUser.sub } })
   return NextResponse.json({ message: 'Cliente excluído' })
 }

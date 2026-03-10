@@ -18,6 +18,9 @@ model User {
 
   activities      ActivityLog[]
   companySettings CompanySettings?
+  clients         Client[]         @relation("UserClients")
+  leads           Lead[]           @relation("UserLeads")
+  deals           Deal[]           @relation("UserDeals")
 }
 
 model Client {
@@ -33,6 +36,8 @@ model Client {
   estimatedVolume Float?
   notes           String?
   status          String   @default("active") // active | inactive
+  userId          String?
+  user            User?    @relation("UserClients", fields: [userId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -53,6 +58,8 @@ model Lead {
   notes             String?
   convertedClientId String?
   convertedClient   Client?  @relation("ConvertedLead", fields: [convertedClientId], references: [id])
+  userId            String?
+  user              User?    @relation("UserLeads", fields: [userId], references: [id])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -73,6 +80,8 @@ model Deal {
   expectedCloseDate DateTime?
   closedAt          DateTime?
   notes             String?
+  userId            String?
+  userOwner         User?     @relation("UserDeals", fields: [userId], references: [id])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 }

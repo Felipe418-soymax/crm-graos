@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
 
   const clients = await prisma.client.findMany({
     where: {
+      userId: authUser.sub,
       AND: [
         search ? {
           OR: [
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
         ...data,
         email: data.email || null,
         mainProducts: JSON.stringify(data.mainProducts),
+        userId: authUser.sub,
       },
     })
 

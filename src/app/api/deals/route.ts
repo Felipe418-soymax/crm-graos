@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
 
   const deals = await prisma.deal.findMany({
     where: {
+      userId: authUser.sub,
       AND: [
         clientId ? { clientId } : {},
         product ? { product } : {},
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
         ...data,
         totalValue,
         commissionValue,
+        userId: authUser.sub,
         expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate) : null,
         closedAt: data.status === 'closed' ? (data.closedAt ? new Date(data.closedAt) : new Date()) : null,
       },

@@ -10,7 +10,7 @@ const updateSchema = z.object({
   volume: z.number().positive().optional(),
   unit: z.enum(['sc', 'kg', 't']).optional(),
   unitPrice: z.number().positive().optional(),
-  commissionPct: z.number().min(0).max(100).optional(),
+  commissionPct: z.number().min(0).optional(),
   status: z.enum(['new', 'proposal', 'negotiating', 'closed', 'lost']).optional(),
   expectedCloseDate: z.string().optional().nullable(),
   closedAt: z.string().optional().nullable(),
@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const unitPrice = data.unitPrice ?? prevDeal.unitPrice
     const commissionPct = data.commissionPct ?? prevDeal.commissionPct
     const totalValue = parseFloat((volume * unitPrice).toFixed(2))
-    const commissionValue = parseFloat((totalValue * commissionPct / 100).toFixed(2))
+    const commissionValue = parseFloat((volume * commissionPct).toFixed(2))
 
     // Auto-set closedAt when status changes to closed
     let closedAt = prevDeal.closedAt

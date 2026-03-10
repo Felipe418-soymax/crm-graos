@@ -51,7 +51,7 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
   })
 
   const totalValue = parseFloat(form.volume || '0') * parseFloat(form.unitPrice || '0')
-  const commissionValue = totalValue * parseFloat(form.commissionPct || '0') / 100
+  const commissionValue = parseFloat(form.volume || '0') * parseFloat(form.commissionPct || '0')
 
   useEffect(() => {
     fetch('/api/clients').then(r => r.json()).then(d => setClients(d.data || []))
@@ -137,9 +137,9 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
             onChange={(e) => set('unitPrice', e.target.value)} required placeholder="128.50" />
         </div>
         <div>
-          <label className={labelClass}>Comissão (%)</label>
-          <input type="number" step="0.01" min="0" max="100" className={inputClass} value={form.commissionPct}
-            onChange={(e) => set('commissionPct', e.target.value)} placeholder="0.8" />
+          <label className={labelClass}>Comissão (R$/{form.unit})</label>
+          <input type="number" step="0.01" min="0" className={inputClass} value={form.commissionPct}
+            onChange={(e) => set('commissionPct', e.target.value)} placeholder="1.00" />
         </div>
       </div>
 

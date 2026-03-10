@@ -10,7 +10,7 @@ const dealSchema = z.object({
   volume: z.number().positive('Volume deve ser positivo'),
   unit: z.enum(['sc', 'kg', 't']),
   unitPrice: z.number().positive('Preço unitário deve ser positivo'),
-  commissionPct: z.number().min(0).max(100).default(0.8),
+  commissionPct: z.number().min(0).default(1),
   status: z.enum(['new', 'proposal', 'negotiating', 'closed', 'lost']).default('new'),
   expectedCloseDate: z.string().optional().nullable(),
   closedAt: z.string().optional().nullable(),
@@ -19,7 +19,7 @@ const dealSchema = z.object({
 
 function calcDeal(volume: number, unitPrice: number, commissionPct: number) {
   const totalValue = parseFloat((volume * unitPrice).toFixed(2))
-  const commissionValue = parseFloat((totalValue * commissionPct / 100).toFixed(2))
+  const commissionValue = parseFloat((volume * commissionPct).toFixed(2))
   return { totalValue, commissionValue }
 }
 

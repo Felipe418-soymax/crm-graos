@@ -8,12 +8,12 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { email: 'Leniseadmngcb@outlook.com' },
-    update: { name: 'Lenise Knirsch', passwordHash: hash, role: 'admin' },
+    update: { name: 'Lenise Knirsch', passwordHash: hash, role: 'seller' },
     create: {
       name: 'Lenise Knirsch',
       email: 'Leniseadmngcb@outlook.com',
       passwordHash: hash,
-      role: 'admin',
+      role: 'seller',
     },
   })
 
@@ -21,7 +21,7 @@ async function main() {
   console.log('   Nome:  Lenise Knirsch')
   console.log('   Email: Leniseadmngcb@outlook.com')
   console.log('   Senha: Lenise123')
-  console.log('   Perfil: Administradora')
+  console.log('   Perfil: Vendedora')
 }
 
 main()

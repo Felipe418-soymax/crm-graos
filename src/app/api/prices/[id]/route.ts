@@ -14,6 +14,7 @@ const updateSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  if (authUser.role !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   try {
     const body = await req.json()
@@ -36,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+  if (authUser.role !== 'admin') return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   await prisma.priceHistory.delete({ where: { id: params.id } })
   return NextResponse.json({ message: 'Registro excluído' })

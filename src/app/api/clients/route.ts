@@ -27,9 +27,12 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get('status') || ''
   const state = searchParams.get('state') || ''
 
+  const isAdmin = authUser.role === 'admin'
+
   const clients = await prisma.client.findMany({
     where: {
       AND: [
+        ...(!isAdmin ? [{ sellerId: authUser.sub }] : []),
         search ? {
           OR: [
             { name: { contains: search } },
@@ -44,6 +47,7 @@ export async function GET(req: NextRequest) {
     },
     include: {
       _count: { select: { deals: true } },
+      ...(isAdmin ? { seller: { select: { id: true, name: true } } } : {}),
     },
     orderBy: { name: 'asc' },
   })
@@ -64,11 +68,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const data = clientSchema.parse(body)
 
+    // Admin pode definir o responsável; seller sempre é o próprio
+    const isAdmin = authUser.role === 'admin'
+    const targetSellerId = (isAdmin && body.sellerId) ? body.sellerId : authUser.sub
+
     const client = await prisma.client.create({
       data: {
         ...data,
         email: data.email || null,
         mainProducts: JSON.stringify(data.mainProducts),
+        sellerId: targetSellerId,
       },
     })
 

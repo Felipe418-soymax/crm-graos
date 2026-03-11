@@ -5,12 +5,12 @@ import { getAuthUser } from '@/lib/auth'
 
 const dealSchema = z.object({
   clientId: z.string().min(1, 'Cliente obrigatório'),
-  product: z.enum(['soja', 'milho', 'outros']),
+  product: z.string().min(1, 'Produto obrigatório'),
   side: z.enum(['buy', 'sell']),
   volume: z.number().positive('Volume deve ser positivo'),
   unit: z.enum(['sc', 'kg', 't']),
   unitPrice: z.number().positive('Preço unitário deve ser positivo'),
-  commissionPct: z.number().min(0).max(100).default(0.8),
+  commissionPct: z.number().min(0).default(0.3),
   status: z.enum(['new', 'proposal', 'negotiating', 'closed', 'lost']).default('new'),
   expectedCloseDate: z.string().optional().nullable(),
   closedAt: z.string().optional().nullable(),
@@ -19,7 +19,7 @@ const dealSchema = z.object({
 
 function calcDeal(volume: number, unitPrice: number, commissionPct: number) {
   const totalValue = parseFloat((volume * unitPrice).toFixed(2))
-  const commissionValue = parseFloat((totalValue * commissionPct / 100).toFixed(2))
+  const commissionValue = parseFloat((volume * commissionPct).toFixed(2))
   return { totalValue, commissionValue }
 }
 
@@ -35,9 +35,12 @@ export async function GET(req: NextRequest) {
   const dateTo = searchParams.get('dateTo')
   const search = searchParams.get('search') || ''
 
+  const isAdmin = authUser.role === 'admin'
+
   const deals = await prisma.deal.findMany({
     where: {
       AND: [
+        ...(!isAdmin ? [{ sellerId: authUser.sub }] : []),
         clientId ? { clientId } : {},
         product ? { product } : {},
         status ? { status } : {},
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest) {
     },
     include: {
       client: { select: { id: true, name: true, type: true } },
+      ...(isAdmin ? { seller: { select: { id: true, name: true } } } : {}),
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -72,6 +76,7 @@ export async function POST(req: NextRequest) {
         ...data,
         totalValue,
         commissionValue,
+        sellerId: authUser.sub,
         expectedCloseDate: data.expectedCloseDate ? new Date(data.expectedCloseDate) : null,
         closedAt: data.status === 'closed' ? (data.closedAt ? new Date(data.closedAt) : new Date()) : null,
       },

@@ -1,15 +1,18 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Phone, MapPin, Package } from 'lucide-react'
-import { Client } from '@/types'
+import { Plus, Search, Phone, MapPin, Package, User as UserIcon } from 'lucide-react'
+import { Client, User } from '@/types'
 import Modal from '@/components/ui/Modal'
 import ClientForm from '@/components/clients/ClientForm'
 import { ClientTypeBadge } from '@/components/ui/Badge'
 import Badge from '@/components/ui/Badge'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 export default function ClientesPage() {
-  const [clients, setClients] = useState<Client[]>([])
+  const { isAdmin } = useCurrentUser()
+  const [clients, setClients] = useState<(Client & { seller?: { id: string; name: string } })[]>([])
+  const [sellers, setSellers] = useState<{ id: string; name: string; role?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
@@ -32,7 +35,13 @@ export default function ClientesPage() {
 
   useEffect(() => { fetchClients() }, [search, typeFilter, statusFilter])
 
-  async function handleCreate(data: Partial<Client>) {
+  useEffect(() => {
+    if (isAdmin) {
+      fetch('/api/users').then(r => r.json()).then(d => setSellers(d.data || [])).catch(() => {})
+    }
+  }, [isAdmin])
+
+  async function handleCreate(data: Partial<Client> & { sellerId?: string }) {
     setSubmitting(true)
     setError('')
     try {
@@ -141,7 +150,14 @@ export default function ClientesPage() {
                 </div>
               )}
 
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+              {isAdmin && client.seller && (
+                <div className="flex items-center gap-1.5 mt-3 text-xs text-gray-500">
+                  <UserIcon size={12} className="text-gray-400" />
+                  <span>{client.seller.name}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
                 <div className="flex items-center gap-1.5">
                   {client.status === 'active'
                     ? <Badge variant="success">Ativo</Badge>
@@ -160,7 +176,8 @@ export default function ClientesPage() {
         {error && (
           <div className="mx-6 mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-xl text-sm border border-red-100">{error}</div>
         )}
-        <ClientForm onSubmit={handleCreate} onCancel={() => setShowModal(false)} loading={submitting} />
+        <ClientForm onSubmit={handleCreate} onCancel={() => setShowModal(false)} loading={submitting}
+          isAdmin={isAdmin} sellers={sellers} />
       </Modal>
     </div>
   )

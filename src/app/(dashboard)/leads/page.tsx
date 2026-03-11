@@ -1,14 +1,16 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Search, Phone, MapPin, ArrowRight, UserPlus } from 'lucide-react'
+import { Plus, Search, Phone, MapPin, ArrowRight, UserPlus, User as UserIcon } from 'lucide-react'
 import { Lead } from '@/types'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import Modal from '@/components/ui/Modal'
 import LeadForm from '@/components/leads/LeadForm'
 import { LeadStageBadge } from '@/components/ui/Badge'
 import { LEAD_SOURCE_LABELS, formatDate } from '@/lib/utils'
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState<Lead[]>([])
+  const { isAdmin } = useCurrentUser()
+  const [leads, setLeads] = useState<(Lead & { seller?: { id: string; name: string } })[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
@@ -144,6 +146,13 @@ export default function LeadsPage() {
                   </p>
                 )}
               </div>
+
+              {isAdmin && (lead as any).seller && (
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2">
+                  <UserIcon size={12} className="text-gray-400" />
+                  <span>{(lead as any).seller.name}</span>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-3 border-t border-gray-50">
                 <button

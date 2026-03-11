@@ -3,7 +3,7 @@ export type ClientType = 'producer' | 'buyer'
 export type ClientStatus = 'active' | 'inactive'
 export type LeadSource = 'indication' | 'instagram' | 'call' | 'other'
 export type LeadStage = 'new' | 'contacted' | 'qualified' | 'unqualified'
-export type DealProduct = 'soja' | 'milho' | 'outros'
+export type DealProduct = string
 export type DealSide = 'buy' | 'sell'
 export type DealUnit = 'sc' | 'kg' | 't'
 export type DealStatus = 'new' | 'proposal' | 'negotiating' | 'closed' | 'lost'
@@ -74,6 +74,7 @@ export interface Deal {
 export interface PriceHistory {
   id: string
   product: string
+  produtoId: string | null
   regionLabel: string
   date: string
   price: number
@@ -81,10 +82,29 @@ export interface PriceHistory {
   createdAt: string
 }
 
+export interface Produto {
+  id: string
+  name: string
+  unit: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CompanySettings {
+  id: string
+  companyName: string | null
+  region: string | null
+  logoUrl: string | null
+  userId: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Shipment {
   id: string
   dealId: string
-  deal?: Pick<Deal, 'id' | 'product' | 'status'> & { client?: Pick<Client, 'id' | 'name' | 'type'> }
+  deal?: Pick<Deal, 'id' | 'product' | 'status' | 'client'>
   truckPlate: string
   cargoWeightKg: number
   bagsQuantity: number

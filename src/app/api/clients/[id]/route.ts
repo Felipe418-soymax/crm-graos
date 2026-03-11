@@ -21,6 +21,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
+
   const client = await prisma.client.findUnique({
     where: { id: params.id },
     include: {
@@ -33,6 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   })
 
   if (!client) return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
+  if (!isAdmin && client.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   return NextResponse.json({
     data: {
@@ -46,7 +49,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
+
   try {
+    const existing = await prisma.client.findUnique({ where: { id: params.id } })
+    if (!existing) return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 })
+    if (!isAdmin && existing.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
+
     const body = await req.json()
     const data = updateSchema.parse(body)
 

@@ -7,7 +7,7 @@ interface DealsByStatusProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  new: '#6b7280',
+  new: '#94a3b8',
   proposal: '#3b82f6',
   negotiating: '#f59e0b',
   closed: '#16a34a',
@@ -18,20 +18,21 @@ export default function DealsByStatus({ data }: DealsByStatusProps) {
   const formatted = data.map((d) => ({
     ...d,
     label: DEAL_STATUS_LABELS[d.status] || d.status,
-    color: STATUS_COLORS[d.status] || '#6b7280',
+    color: STATUS_COLORS[d.status] || '#94a3b8',
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={220}>
       <BarChart data={formatted} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-        <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} allowDecimals={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+        <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} allowDecimals={false} />
         <Tooltip
           formatter={(value: number) => [value, 'Negociações']}
-          contentStyle={{ borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+          contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', fontSize: '13px' }}
+          cursor={{ fill: 'rgba(0,0,0,0.03)' }}
         />
-        <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+        <Bar dataKey="count" radius={[8, 8, 0, 0]} animationDuration={800} animationEasing="ease-out">
           {formatted.map((entry, index) => (
             <Cell key={index} fill={entry.color} />
           ))}

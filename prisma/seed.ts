@@ -17,6 +17,8 @@ async function main() {
 
   // ── Users ────────────────────────────────────────────────────────────────
   const adminHash = await bcrypt.hash('admin123', 10)
+  const leniseHash = await bcrypt.hash('lenise123', 10)
+  const geanHash = await bcrypt.hash('gean123', 10)
   const sellerHash = await bcrypt.hash('seller123', 10)
 
   const admin = await prisma.user.create({
@@ -25,6 +27,24 @@ async function main() {
       email: 'admin@crmgraos.com',
       passwordHash: adminHash,
       role: 'admin',
+    },
+  })
+
+  const lenise = await prisma.user.create({
+    data: {
+      name: 'Lenise',
+      email: 'lenise@crmgraos.com',
+      passwordHash: leniseHash,
+      role: 'admin',
+    },
+  })
+
+  const gean = await prisma.user.create({
+    data: {
+      name: 'Gean',
+      email: 'gean@crmgraos.com',
+      passwordHash: geanHash,
+      role: 'seller',
     },
   })
 
@@ -174,7 +194,12 @@ async function main() {
   ]
 
   const clients = await Promise.all(
-    clientsData.map((c) => prisma.client.create({ data: c }))
+    clientsData.map((c, index) => {
+      // Distribui clientes entre vendedores
+      // Primeiros 5 para o seller padrão, próximos 5 para Gean
+      const sellerId = index < 5 ? seller.id : gean.id
+      return prisma.client.create({ data: { ...c, sellerId } })
+    })
   )
   console.log(`✅ ${clients.length} clients created`)
 
@@ -203,7 +228,11 @@ async function main() {
   ]
 
   const leads = await Promise.all(
-    leadsData.map((l) => prisma.lead.create({ data: l }))
+    leadsData.map((l, index) => {
+      // Distribui leads entre vendedores
+      const sellerId = index % 2 === 0 ? seller.id : gean.id
+      return prisma.lead.create({ data: { ...l, sellerId } })
+    })
   )
   console.log(`✅ ${leads.length} leads created`)
 
@@ -275,7 +304,11 @@ async function main() {
   ]
 
   const deals = await Promise.all(
-    dealsData.map((d) => prisma.deal.create({ data: d }))
+    dealsData.map((d, index) => {
+      // Distribui deals entre vendedores
+      const sellerId = index % 2 === 0 ? seller.id : gean.id
+      return prisma.deal.create({ data: { ...d, sellerId } })
+    })
   )
   console.log(`✅ ${deals.length} deals created`)
 
@@ -337,8 +370,10 @@ async function main() {
   console.log('✅ Activity logs created')
   console.log('\n🎉 Seed completed successfully!')
   console.log('\n📋 Login credentials:')
-  console.log('  Admin:   admin@crmgraos.com   / admin123')
-  console.log('  Seller:  vendedor@crmgraos.com / seller123')
+  console.log('  Admin:   admin@crmgraos.com     / admin123')
+  console.log('  Admin:   lenise@crmgraos.com    / lenise123')
+  console.log('  Seller:  gean@crmgraos.com      / gean123')
+  console.log('  Seller:  vendedor@crmgraos.com  / seller123')
 }
 
 main()

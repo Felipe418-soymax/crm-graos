@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -43,8 +45,8 @@ export default function LoginPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">CRM Grãos</h1>
-          <p className="text-gray-500 mt-1">Gestão inteligente para corretores</p>
+          <h1 className="text-3xl font-bold text-gray-900">Grãos CRM</h1>
+          <p className="text-gray-500 mt-1">Gestão inteligente para corretores de commodities</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -69,14 +71,24 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
                 Senha
               </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-1"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -95,10 +107,25 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <p className="text-xs text-gray-400 text-center">Credenciais para demonstração:</p>
-            <div className="mt-2 space-y-1 text-xs text-gray-500 text-center">
-              <p><span className="font-medium">Admin:</span> admin@crmgraos.com / admin123</p>
-              <p><span className="font-medium">Vendedor:</span> vendedor@crmgraos.com / seller123</p>
+            <p className="text-xs text-gray-400 text-center mb-2">Credenciais disponíveis:</p>
+            <div className="space-y-1.5 text-xs text-gray-500">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Lenise (Admin)</span>
+                <span className="font-mono">lenise@crmgraos.com</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Gean (Seller)</span>
+                <span className="font-mono">gean@crmgraos.com</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Admin</span>
+                <span className="font-mono">admin@crmgraos.com</span>
+              </div>
+              <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 rounded-lg">
+                <span className="font-medium text-gray-700">Vendedor</span>
+                <span className="font-mono">vendedor@crmgraos.com</span>
+              </div>
+              <p className="text-center text-gray-400 mt-2">Senha padrão: <span className="font-mono font-medium">nome123</span></p>
             </div>
           </div>
         </div>

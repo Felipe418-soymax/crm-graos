@@ -10,7 +10,7 @@ module.exports = {
     {
       name: 'crm-graos',
       script: 'node_modules/.bin/next',
-      args: 'start -p 3000',
+      args: 'start -p 3001',
       cwd: '/var/www/crm-graos',   // caminho absoluto no VPS
       instances: 1,                 // SQLite é single-writer; manter 1 instância
       exec_mode: 'fork',
@@ -21,7 +21,7 @@ module.exports = {
       // Variáveis de ambiente de produção (sobrescritas pelo .env do cwd)
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3000,
+        PORT: 3001,
       },
 
       // Logs

@@ -12,7 +12,7 @@ function getSecret(): Uint8Array {
   if (!secret || secret.length < 16) {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(
-        '[CRM Grãos] JWT_SECRET não definido ou muito curto. ' +
+        '[Grãos CRM] JWT_SECRET não definido ou muito curto. ' +
         'Defina uma chave segura com 32+ caracteres no arquivo .env de produção.'
       )
     }

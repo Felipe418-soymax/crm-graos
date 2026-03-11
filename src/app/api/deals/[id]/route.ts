@@ -5,12 +5,12 @@ import { getAuthUser } from '@/lib/auth'
 
 const updateSchema = z.object({
   clientId: z.string().optional(),
-  product: z.enum(['soja', 'milho', 'outros']).optional(),
+  product: z.string().min(1).optional(),
   side: z.enum(['buy', 'sell']).optional(),
   volume: z.number().positive().optional(),
   unit: z.enum(['sc', 'kg', 't']).optional(),
   unitPrice: z.number().positive().optional(),
-  commissionPct: z.number().min(0).max(100).optional(),
+  commissionPct: z.number().min(0).optional(),
   status: z.enum(['new', 'proposal', 'negotiating', 'closed', 'lost']).optional(),
   expectedCloseDate: z.string().optional().nullable(),
   closedAt: z.string().optional().nullable(),
@@ -21,11 +21,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
   const deal = await prisma.deal.findUnique({
     where: { id: params.id },
     include: { client: { select: { id: true, name: true, type: true } } },
   })
   if (!deal) return NextResponse.json({ error: 'Negociação não encontrada' }, { status: 404 })
+  if (!isAdmin && deal.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
   return NextResponse.json({ data: deal })
 }
 
@@ -33,18 +35,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
+
   try {
     const body = await req.json()
     const data = updateSchema.parse(body)
     const prevDeal = await prisma.deal.findUnique({ where: { id: params.id } })
     if (!prevDeal) return NextResponse.json({ error: 'Negociação não encontrada' }, { status: 404 })
+    if (!isAdmin && prevDeal.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
     // Recalculate totals if financial fields changed
     const volume = data.volume ?? prevDeal.volume
     const unitPrice = data.unitPrice ?? prevDeal.unitPrice
     const commissionPct = data.commissionPct ?? prevDeal.commissionPct
     const totalValue = parseFloat((volume * unitPrice).toFixed(2))
-    const commissionValue = parseFloat((totalValue * commissionPct / 100).toFixed(2))
+    const commissionValue = parseFloat((volume * commissionPct).toFixed(2))
 
     // Auto-set closedAt when status changes to closed
     let closedAt = prevDeal.closedAt

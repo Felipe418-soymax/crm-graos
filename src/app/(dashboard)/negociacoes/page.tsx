@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Plus, Search, ChevronRight, TrendingUp } from 'lucide-react'
+import { Plus, Search, ChevronRight, TrendingUp, User as UserIcon } from 'lucide-react'
 import { Deal } from '@/types'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import Modal from '@/components/ui/Modal'
 import DealForm from '@/components/deals/DealForm'
 import { DealStatusBadge } from '@/components/ui/Badge'
@@ -19,7 +20,8 @@ const STATUS_COLUMN_COLORS: Record<string, string> = {
 type DealStatus = typeof STATUSES[number]
 
 export default function NegociacoesPage() {
-  const [deals, setDeals] = useState<Deal[]>([])
+  const { isAdmin } = useCurrentUser()
+  const [deals, setDeals] = useState<(Deal & { seller?: { id: string; name: string } })[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editDeal, setEditDeal] = useState<Deal | null>(null)
@@ -28,6 +30,20 @@ export default function NegociacoesPage() {
   const [view, setView] = useState<'kanban' | 'table'>('kanban')
   const [search, setSearch] = useState('')
   const [productFilter, setProductFilter] = useState('')
+  const [productOptions, setProductOptions] = useState<{ value: string; label: string }[]>([])
+
+  useEffect(() => {
+    fetch('/api/produtos')
+      .then((r) => r.json())
+      .then((d) => {
+        const prods = (d.data || []).map((p: { name: string }) => ({
+          value: p.name.toLowerCase(),
+          label: p.name,
+        }))
+        setProductOptions(prods)
+      })
+      .catch(() => {})
+  }, [])
 
   async function fetchDeals() {
     setLoading(true)
@@ -112,9 +128,9 @@ export default function NegociacoesPage() {
         <select value={productFilter} onChange={(e) => setProductFilter(e.target.value)}
           className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500">
           <option value="">Todos os produtos</option>
-          <option value="soja">Soja</option>
-          <option value="milho">Milho</option>
-          <option value="outros">Outros</option>
+          {productOptions.map((p) => (
+            <option key={p.value} value={p.value}>{p.label}</option>
+          ))}
         </select>
       </div>
 
@@ -151,6 +167,12 @@ export default function NegociacoesPage() {
                       <span className="text-sm font-bold text-gray-900">{formatCurrency(deal.totalValue)}</span>
                       <span className="text-xs text-gray-400">{formatNumber(deal.volume)} {deal.unit}</span>
                     </div>
+                    {isAdmin && (deal as any).seller && (
+                      <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                        <UserIcon size={11} className="text-gray-400" />
+                        <span>{(deal as any).seller.name}</span>
+                      </div>
+                    )}
                     {/* Move buttons */}
                     <div className="flex gap-1 mt-3 pt-2 border-t border-gray-50">
                       {STATUSES.filter((s) => s !== status).slice(0, 3).map((s) => (
@@ -189,6 +211,7 @@ export default function NegociacoesPage() {
                   <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Comissão</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Data</th>
+                  {isAdmin && <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Responsável</th>}
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -203,6 +226,7 @@ export default function NegociacoesPage() {
                     <td className="px-4 py-3 text-right text-green-700 font-medium">{formatCurrency(deal.commissionValue)}</td>
                     <td className="px-4 py-3"><DealStatusBadge status={deal.status} /></td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{formatDate(deal.createdAt)}</td>
+                    {isAdmin && <td className="px-4 py-3 text-gray-500 text-xs">{(deal as any).seller?.name || '—'}</td>}
                     <td className="px-4 py-3">
                       <button
                         onClick={() => { setEditDeal(deal); setError(''); setShowModal(true) }}

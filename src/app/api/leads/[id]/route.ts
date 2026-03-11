@@ -19,8 +19,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
   const lead = await prisma.lead.findUnique({ where: { id: params.id } })
   if (!lead) return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 })
+  if (!isAdmin && lead.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   return NextResponse.json({ data: lead })
 }
@@ -29,10 +31,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
+
   try {
     const body = await req.json()
     const data = updateSchema.parse(body)
     const prevLead = await prisma.lead.findUnique({ where: { id: params.id } })
+    if (!prevLead) return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 })
+    if (!isAdmin && prevLead.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
     const lead = await prisma.lead.update({
       where: { id: params.id },
@@ -63,6 +69,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
+
+  const isAdmin = authUser.role === 'admin'
+  const lead = await prisma.lead.findUnique({ where: { id: params.id } })
+  if (!lead) return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 })
+  if (!isAdmin && lead.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   await prisma.lead.delete({ where: { id: params.id } })
   return NextResponse.json({ message: 'Lead excluído' })

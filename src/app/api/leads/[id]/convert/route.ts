@@ -6,8 +6,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
   const lead = await prisma.lead.findUnique({ where: { id: params.id } })
   if (!lead) return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 })
+  if (!isAdmin && lead.sellerId !== authUser.sub) return NextResponse.json({ error: 'Sem permissão' }, { status: 403 })
 
   if (lead.convertedClientId) {
     return NextResponse.json({ error: 'Lead já foi convertido em cliente' }, { status: 400 })
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       ),
       notes: lead.notes,
       status: 'active',
+      sellerId: authUser.sub,
     },
   })
 

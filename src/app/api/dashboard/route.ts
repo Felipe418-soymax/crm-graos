@@ -7,6 +7,9 @@ export async function GET(req: NextRequest) {
   const authUser = await getAuthUser()
   if (!authUser) return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
 
+  const isAdmin = authUser.role === 'admin'
+  const sellerFilter = !isAdmin ? { sellerId: authUser.sub } : {}
+
   const { searchParams } = new URL(req.url)
   const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1))
   const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()))
@@ -19,6 +22,7 @@ export async function GET(req: NextRequest) {
     where: {
       status: 'closed',
       closedAt: { gte: periodStart, lte: periodEnd },
+      ...sellerFilter,
     },
     include: { client: { select: { id: true, name: true } } },
     orderBy: { closedAt: 'asc' },
@@ -35,18 +39,18 @@ export async function GET(req: NextRequest) {
 
   // New leads in period
   const newLeadsCount = await prisma.lead.count({
-    where: { createdAt: { gte: periodStart, lte: periodEnd } },
+    where: { createdAt: { gte: periodStart, lte: periodEnd }, ...sellerFilter },
   })
 
   // Lead conversion rate
-  const qualifiedLeads = await prisma.lead.count({ where: { stage: 'qualified' } })
-  const convertedLeads = await prisma.lead.count({ where: { NOT: { convertedClientId: null } } })
-  const totalLeads = await prisma.lead.count()
+  const convertedLeads = await prisma.lead.count({ where: { NOT: { convertedClientId: null }, ...sellerFilter } })
+  const totalLeads = await prisma.lead.count({ where: { ...sellerFilter } })
   const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0
 
   // Pipeline counts
   const pipelineGroups = await prisma.deal.groupBy({
     by: ['status'],
+    where: { ...sellerFilter },
     _count: { status: true },
   })
   const pipeline: Record<string, number> = {
@@ -88,19 +92,25 @@ export async function GET(req: NextRequest) {
 
   // Recent deals (last 10 across all statuses)
   const recentDeals = await prisma.deal.findMany({
-    include: { client: { select: { id: true, name: true, type: true } } },
+    where: { ...sellerFilter },
+    include: {
+      client: { select: { id: true, name: true, type: true } },
+      ...(isAdmin ? { seller: { select: { id: true, name: true } } } : {}),
+    },
     orderBy: { updatedAt: 'desc' },
     take: 10,
   })
 
-  // Shipments KPIs: Trucks loaded and total weight transported in period
-  const shipmentsInPeriod = await prisma.shipment.findMany({
+  // Shipments KPIs: Trucks Loaded and Total Weight Transported
+  const shipments = await prisma.shipment.findMany({
     where: {
       loadingDate: { gte: periodStart, lte: periodEnd },
+      ...sellerFilter,
     },
   })
-  const trucksLoaded = shipmentsInPeriod.length
-  const totalWeightTransported = shipmentsInPeriod.reduce((sum, s) => sum + s.cargoWeightKg, 0)
+
+  const trucksLoaded = shipments.length
+  const totalWeightTransported = shipments.reduce((sum, s) => sum + s.cargoWeightKg, 0)
 
   return NextResponse.json({
     data: {

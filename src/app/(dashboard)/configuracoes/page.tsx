@@ -198,7 +198,7 @@ export default function ConfiguracoesPage() {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-gray-400 text-xs mb-1">Versão</p>
-            <p className="text-gray-700 font-medium">CRM Grãos v0.1.0</p>
+            <p className="text-gray-700 font-medium">Grãos CRM v0.1.0</p>
           </div>
           <div>
             <p className="text-gray-400 text-xs mb-1">Banco de dados</p>

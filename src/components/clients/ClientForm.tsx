@@ -1,18 +1,30 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Client } from '@/types'
 
 interface ClientFormProps {
   client?: Client
-  onSubmit: (data: Partial<Client>) => Promise<void>
+  onSubmit: (data: Partial<Client> & { sellerId?: string }) => Promise<void>
   onCancel: () => void
   loading?: boolean
+  isAdmin?: boolean
+  sellers?: { id: string; name: string; role?: string }[]
 }
 
-const PRODUCTS = ['soja', 'milho', 'algodão', 'sorgo', 'trigo', 'outros']
 const STATES = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
 
-export default function ClientForm({ client, onSubmit, onCancel, loading }: ClientFormProps) {
+export default function ClientForm({ client, onSubmit, onCancel, loading, isAdmin, sellers }: ClientFormProps) {
+  const [products, setProducts] = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/produtos')
+      .then(r => r.json())
+      .then(d => {
+        const names = (d.data || []).map((p: { name: string }) => p.name.toLowerCase())
+        setProducts(names.length > 0 ? names : ['soja', 'milho', 'algodão', 'sorgo', 'trigo', 'outros'])
+      })
+      .catch(() => setProducts(['soja', 'milho', 'algodão', 'sorgo', 'trigo', 'outros']))
+  }, [])
   const [form, setForm] = useState({
     type: client?.type || 'producer',
     name: client?.name || '',
@@ -25,6 +37,7 @@ export default function ClientForm({ client, onSubmit, onCancel, loading }: Clie
     estimatedVolume: client?.estimatedVolume?.toString() || '',
     notes: client?.notes || '',
     status: client?.status || 'active',
+    sellerId: '',
   })
 
   function set(key: string, value: string) {
@@ -58,6 +71,7 @@ export default function ClientForm({ client, onSubmit, onCancel, loading }: Clie
       estimatedVolume: form.estimatedVolume ? parseFloat(form.estimatedVolume) : null,
       notes: form.notes || null,
       status: form.status as Client['status'],
+      ...(isAdmin && form.sellerId ? { sellerId: form.sellerId } : {}),
     })
   }
 
@@ -125,7 +139,7 @@ export default function ClientForm({ client, onSubmit, onCancel, loading }: Clie
       <div>
         <label className={labelClass}>Produtos principais *</label>
         <div className="flex flex-wrap gap-2">
-          {PRODUCTS.map((p) => (
+          {products.map((p) => (
             <button
               key={p}
               type="button"
@@ -161,6 +175,18 @@ export default function ClientForm({ client, onSubmit, onCancel, loading }: Clie
         <textarea className={inputClass} rows={3} value={form.notes}
           onChange={(e) => set('notes', e.target.value)} placeholder="Informações adicionais sobre o cliente..." />
       </div>
+
+      {isAdmin && sellers && sellers.length > 0 && (
+        <div>
+          <label className={labelClass}>Responsável (vendedor) *</label>
+          <select className={inputClass} value={form.sellerId} onChange={(e) => set('sellerId', e.target.value)} required>
+            <option value="">Selecione o responsável</option>
+            {sellers.filter(s => s.role !== 'admin').map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex gap-3 pt-2">
         <button type="button" onClick={onCancel}

@@ -25,9 +25,12 @@ export async function GET(req: NextRequest) {
   const source = searchParams.get('source') || ''
   const converted = searchParams.get('converted')
 
+  const isAdmin = authUser.role === 'admin'
+
   const leads = await prisma.lead.findMany({
     where: {
       AND: [
+        ...(!isAdmin ? [{ sellerId: authUser.sub }] : []),
         search ? {
           OR: [
             { name: { contains: search } },
@@ -41,6 +44,7 @@ export async function GET(req: NextRequest) {
         converted === 'true' ? { NOT: { convertedClientId: null } } : {},
       ],
     },
+    ...(isAdmin ? { include: { seller: { select: { id: true, name: true } } } } : {}),
     orderBy: { createdAt: 'desc' },
   })
 
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
     const data = leadSchema.parse(body)
 
     const lead = await prisma.lead.create({
-      data: { ...data, email: data.email || null },
+      data: { ...data, email: data.email || null, sellerId: authUser.sub },
     })
 
     await prisma.activityLog.create({

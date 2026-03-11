@@ -89,25 +89,6 @@ model Deal {
   shipments Shipment[]
 }
 
-model Shipment {
-  id             String   @id @default(cuid())
-  dealId         String
-  deal           Deal     @relation(fields: [dealId], references: [id])
-  truckPlate     String
-  cargoWeightKg  Float
-  bagsQuantity   Float    // Regra de negócio: cargoWeightKg / 60
-  loadedProduct  String
-  loadingDate    DateTime
-  cargoValue     Float
-  driverName     String
-  driverPhone    String
-  invoicePdfPath String?
-  sellerId       String
-  seller         User     @relation(fields: [sellerId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
 model PriceHistory {
   id          String   @id @default(cuid())
   product     String
@@ -150,4 +131,23 @@ model CompanySettings {
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Shipment {
+  id             String   @id @default(cuid())
+  dealId         String
+  deal           Deal     @relation(fields: [dealId], references: [id])
+  truckPlate     String
+  cargoWeightKg  Float
+  bagsQuantity   Float    // Calculated: cargoWeightKg / 60
+  loadedProduct  String
+  loadingDate    DateTime
+  cargoValue     Float
+  driverName     String
+  driverPhone    String
+  invoicePdfPath String?
+  sellerId       String
+  seller         User     @relation(fields: [sellerId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

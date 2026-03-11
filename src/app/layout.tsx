@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'CRM Grãos',
-  description: 'CRM para corretores de grãos',
+  title: 'Grãos CRM',
+  description: 'Grãos CRM — Gestão inteligente para corretores de commodities',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

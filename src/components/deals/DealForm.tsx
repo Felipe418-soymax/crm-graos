@@ -9,11 +9,6 @@ interface DealFormProps {
   loading?: boolean
 }
 
-const PRODUCTS = [
-  { value: 'soja', label: 'Soja' },
-  { value: 'milho', label: 'Milho' },
-  { value: 'outros', label: 'Outros' },
-]
 const UNITS = [
   { value: 'sc', label: 'Sacas (sc)' },
   { value: 'kg', label: 'Quilogramas (kg)' },
@@ -29,6 +24,7 @@ const STATUSES = [
 
 export default function DealForm({ deal, onSubmit, onCancel, loading }: DealFormProps) {
   const [clients, setClients] = useState<Client[]>([])
+  const [products, setProducts] = useState<{ value: string; label: string }[]>([])
   const [form, setForm] = useState({
     clientId: deal?.clientId || '',
     product: deal?.product || 'soja',
@@ -36,7 +32,7 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
     volume: deal?.volume?.toString() || '',
     unit: deal?.unit || 'sc',
     unitPrice: deal?.unitPrice?.toString() || '',
-    commissionPct: deal?.commissionPct?.toString() || '0.8',
+    commissionPct: deal?.commissionPct?.toString() || '0.30',
     status: deal?.status || 'new',
     expectedCloseDate: deal?.expectedCloseDate
       ? new Date(deal.expectedCloseDate).toISOString().split('T')[0]
@@ -48,12 +44,30 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
   })
 
   const totalValue = parseFloat(form.volume || '0') * parseFloat(form.unitPrice || '0')
-  const commissionValue = totalValue * parseFloat(form.commissionPct || '0') / 100
+  const commissionValue = parseFloat(form.volume || '0') * parseFloat(form.commissionPct || '0')
 
   useEffect(() => {
     fetch('/api/clients')
       .then((r) => r.json())
       .then((d) => setClients(d.data || []))
+    fetch('/api/produtos')
+      .then((r) => r.json())
+      .then((d) => {
+        const prods = (d.data || []).map((p: { name: string }) => ({
+          value: p.name.toLowerCase(),
+          label: p.name,
+        }))
+        setProducts(prods.length > 0 ? prods : [
+          { value: 'soja', label: 'Soja' },
+          { value: 'milho', label: 'Milho' },
+          { value: 'outros', label: 'Outros' },
+        ])
+      })
+      .catch(() => setProducts([
+        { value: 'soja', label: 'Soja' },
+        { value: 'milho', label: 'Milho' },
+        { value: 'outros', label: 'Outros' },
+      ]))
   }, [])
 
   function set(key: string, value: string) {
@@ -98,7 +112,7 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
         <div>
           <label className={labelClass}>Produto *</label>
           <select className={inputClass} value={form.product} onChange={(e) => set('product', e.target.value)}>
-            {PRODUCTS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            {products.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </div>
         <div>
@@ -133,9 +147,9 @@ export default function DealForm({ deal, onSubmit, onCancel, loading }: DealForm
             onChange={(e) => set('unitPrice', e.target.value)} required placeholder="128.50" />
         </div>
         <div>
-          <label className={labelClass}>Comissão (%)</label>
-          <input type="number" step="0.01" min="0" max="100" className={inputClass} value={form.commissionPct}
-            onChange={(e) => set('commissionPct', e.target.value)} placeholder="0.8" />
+          <label className={labelClass}>Comissão (R$/{form.unit})</label>
+          <input type="number" step="0.01" min="0" className={inputClass} value={form.commissionPct}
+            onChange={(e) => set('commissionPct', e.target.value)} placeholder="0.30" />
         </div>
       </div>
 

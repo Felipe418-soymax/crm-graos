@@ -98,3 +98,15 @@ export function getCurrentMonthYear() {
   const now = new Date()
   return { month: now.getMonth() + 1, year: now.getFullYear() }
 }
+
+/**
+ * REGRA DE NEGÓCIO CENTRAL: Conversão de peso em KG para sacas
+ * Padrão do mercado de grãos: 1 saca = 60 kg
+ *
+ * @param weightKg - Peso em quilogramas
+ * @returns Quantidade de sacas (com precisão decimal)
+ */
+export function calculateBagsFromWeight(weightKg: number): number {
+  const KILOS_PER_BAG = 60
+  return weightKg / KILOS_PER_BAG
+}

@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  LayoutDashboard, Users, UserPlus, TrendingUp, BarChart3,
+  LayoutDashboard, Users, UserPlus, TrendingUp, Truck, BarChart3,
   FileText, Settings, LogOut, Wheat, ChevronRight
 } from 'lucide-react'
 
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/leads', label: 'Leads', icon: UserPlus },
   { href: '/negociacoes', label: 'Negociações', icon: TrendingUp },
+  { href: '/carregamentos', label: 'Carregamentos', icon: Truck },
   { href: '/precos', label: 'Preços', icon: BarChart3 },
   { href: '/relatorios', label: 'Relatórios', icon: FileText },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },

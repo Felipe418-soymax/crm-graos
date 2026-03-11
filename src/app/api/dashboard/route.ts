@@ -93,6 +93,15 @@ export async function GET(req: NextRequest) {
     take: 10,
   })
 
+  // Shipments KPIs: Trucks loaded and total weight transported in period
+  const shipmentsInPeriod = await prisma.shipment.findMany({
+    where: {
+      loadingDate: { gte: periodStart, lte: periodEnd },
+    },
+  })
+  const trucksLoaded = shipmentsInPeriod.length
+  const totalWeightTransported = shipmentsInPeriod.reduce((sum, s) => sum + s.cargoWeightKg, 0)
+
   return NextResponse.json({
     data: {
       period: { month, year },
@@ -103,6 +112,8 @@ export async function GET(req: NextRequest) {
         newLeadsCount,
         leadConversionRate,
         volumeByUnit,
+        trucksLoaded,
+        totalWeightTransported,
       },
       pipeline,
       topClients,

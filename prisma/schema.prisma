@@ -16,7 +16,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  activities ActivityLog[]
+  activities      ActivityLog[]
+  companySettings CompanySettings?
+  clients         Client[]
+  leads           Lead[]
+  deals           Deal[]
+  shipments       Shipment[]
 }
 
 model Client {
@@ -32,6 +37,8 @@ model Client {
   estimatedVolume Float?
   notes           String?
   status          String   @default("active") // active | inactive
+  sellerId        String   @default("")
+  seller          User     @relation(fields: [sellerId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -52,6 +59,8 @@ model Lead {
   notes             String?
   convertedClientId String?
   convertedClient   Client?  @relation("ConvertedLead", fields: [convertedClientId], references: [id])
+  sellerId          String   @default("")
+  seller            User     @relation(fields: [sellerId], references: [id])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -72,17 +81,42 @@ model Deal {
   expectedCloseDate DateTime?
   closedAt          DateTime?
   notes             String?
+  sellerId          String    @default("")
+  seller            User      @relation(fields: [sellerId], references: [id])
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  shipments Shipment[]
+}
+
+model Shipment {
+  id             String   @id @default(cuid())
+  dealId         String
+  deal           Deal     @relation(fields: [dealId], references: [id])
+  truckPlate     String
+  cargoWeightKg  Float
+  bagsQuantity   Float    // Regra de negócio: cargoWeightKg / 60
+  loadedProduct  String
+  loadingDate    DateTime
+  cargoValue     Float
+  driverName     String
+  driverPhone    String
+  invoicePdfPath String?
+  sellerId       String
+  seller         User     @relation(fields: [sellerId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model PriceHistory {
   id          String   @id @default(cuid())
   product     String
+  produtoId   String?
+  produto     Produto? @relation(fields: [produtoId], references: [id])
   regionLabel String
   date        DateTime
   price       Float
-  unit        String   // sc | kg | t
+  unit        String   // sc | kg | t | L | mL
   createdAt   DateTime @default(now())
 }
 
@@ -95,4 +129,25 @@ model ActivityLog {
   userId     String
   user       User     @relation(fields: [userId], references: [id])
   createdAt  DateTime @default(now())
+}
+
+model Produto {
+  id             String         @id @default(cuid())
+  name           String         @unique
+  unit           String         @default("sc")
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  priceHistories PriceHistory[]
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  companyName String?
+  region      String?
+  logoUrl     String?
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

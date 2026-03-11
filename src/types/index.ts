@@ -81,6 +81,25 @@ export interface PriceHistory {
   createdAt: string
 }
 
+export interface Shipment {
+  id: string
+  dealId: string
+  deal?: Pick<Deal, 'id' | 'product' | 'status'> & { client?: Pick<Client, 'id' | 'name' | 'type'> }
+  truckPlate: string
+  cargoWeightKg: number
+  bagsQuantity: number
+  loadedProduct: string
+  loadingDate: string
+  cargoValue: number
+  driverName: string
+  driverPhone: string
+  invoicePdfPath: string | null
+  sellerId: string
+  seller?: Pick<User, 'id' | 'name'>
+  createdAt: string
+  updatedAt: string
+}
+
 export interface DashboardData {
   period: { month: number; year: number }
   kpis: {
@@ -90,6 +109,8 @@ export interface DashboardData {
     newLeadsCount: number
     leadConversionRate: number
     volumeByUnit: Record<string, number>
+    trucksLoaded: number
+    totalWeightTransported: number
   }
   pipeline: Record<DealStatus, number>
   topClients: Array<{ clientId: string; name: string; totalValue: number; dealsCount: number }>

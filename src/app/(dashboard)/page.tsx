@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { DollarSign, TrendingUp, Package, BarChart2, Users, Percent } from 'lucide-react'
+import { DollarSign, TrendingUp, Package, BarChart2, Users, Percent, Truck, Weight } from 'lucide-react'
 import { formatCurrency, formatNumber, formatDate, DEAL_STATUS_LABELS, UNIT_LABELS, getCurrentMonthYear } from '@/lib/utils'
 import KpiCard from '@/components/dashboard/KpiCard'
 import RevenueChart from '@/components/dashboard/RevenueChart'
@@ -70,7 +70,7 @@ export default function DashboardPage() {
       ) : data ? (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard
               title="Dinheiro Movimentado"
               value={formatCurrency(data.kpis.totalValue)}
@@ -98,6 +98,20 @@ export default function DashboardPage() {
               subtitle="Negociações encerradas no período"
               icon={BarChart2}
               color="purple"
+            />
+            <KpiCard
+              title="Caminhões Carregados"
+              value={String(data.kpis.trucksLoaded)}
+              subtitle="Total de carregamentos realizados"
+              icon={Truck}
+              color="indigo"
+            />
+            <KpiCard
+              title="Peso Transportado"
+              value={`${formatNumber(data.kpis.totalWeightTransported, 0)} kg`}
+              subtitle="Total em quilogramas"
+              icon={Weight}
+              color="teal"
             />
             <KpiCard
               title="Leads Novos"

@@ -130,22 +130,12 @@ const FABRICIO_SECTIONS: SectionDef[] = [
     ],
   },
   {
-    title: 'Dados do Motorista',
+    title: 'Dados Gerais do Transporte',
     fields: [
       { key: 'driverName', label: 'Motorista', type: 'text' },
       { key: 'driverCpf', label: 'CPF', type: 'text' },
       { key: 'driverPhone', label: 'Telefone', type: 'text' },
-    ],
-  },
-  {
-    title: 'Dados do Proprietário',
-    fields: [
       { key: 'ownerName', label: 'Proprietário', type: 'text' },
-    ],
-  },
-  {
-    title: 'Dados do Veículo',
-    fields: [
       { key: 'truckPlate', label: 'Veículo / Placa', type: 'text' },
       { key: 'vehicleCity', label: 'Cidade do veículo', type: 'text' },
       { key: 'vehicleState', label: 'UF do veículo', type: 'text' },
@@ -156,17 +146,16 @@ const FABRICIO_SECTIONS: SectionDef[] = [
   {
     title: 'Dados da Carga',
     fields: [
-      { key: 'cargoType', label: 'Tipo', type: 'text' },
+      { key: 'product', label: 'Produto', type: 'text' },
       { key: 'harvest', label: 'Safra', type: 'text' },
-      { key: 'commodity', label: 'Mercadoria', type: 'text' },
       { key: 'producerName', label: 'Produtor', type: 'text' },
     ],
   },
   {
     title: 'Itinerário / Destino',
     fields: [
-      { key: 'recipientName', label: 'Destinatário', type: 'text' },
-      { key: 'quantity', label: 'Quantidade (Kgs)', type: 'number' },
+      { key: 'loadingAddress', label: 'Itinerário', type: 'text' },
+      { key: 'deliveryLocation', label: 'Destino', type: 'text' },
     ],
   },
   {

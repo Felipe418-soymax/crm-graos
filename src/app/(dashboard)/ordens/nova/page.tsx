@@ -103,7 +103,7 @@ const FABRICIO_SECTIONS: SectionDef[] = [
   {
     title: 'Identificação do Documento',
     fields: [
-      { key: 'orderNumber', label: 'Autorização de Carregamento Nº', type: 'text' },
+      { key: 'orderNumber', label: 'Autorização de Carregamento Nº', type: 'readonly' },
       { key: 'origin', label: 'Origem', type: 'text' },
       { key: 'warehouse', label: 'Armazém / Fazenda', type: 'text' },
       { key: 'clientCity', label: 'Município', type: 'text' },
@@ -113,22 +113,12 @@ const FABRICIO_SECTIONS: SectionDef[] = [
     ],
   },
   {
-    title: 'Dados do Motorista',
+    title: 'Dados Gerais do Transporte',
     fields: [
       { key: 'driverName', label: 'Motorista', type: 'text' },
       { key: 'driverCpf', label: 'CPF', type: 'text' },
       { key: 'driverPhone', label: 'Telefone', type: 'text' },
-    ],
-  },
-  {
-    title: 'Dados do Proprietário',
-    fields: [
       { key: 'ownerName', label: 'Proprietário', type: 'text' },
-    ],
-  },
-  {
-    title: 'Dados do Veículo',
-    fields: [
       { key: 'truckPlate', label: 'Veículo / Placa', type: 'text' },
       { key: 'vehicleCity', label: 'Cidade do veículo', type: 'text' },
       { key: 'vehicleState', label: 'UF do veículo', type: 'text' },
@@ -139,17 +129,16 @@ const FABRICIO_SECTIONS: SectionDef[] = [
   {
     title: 'Dados da Carga',
     fields: [
-      { key: 'cargoType', label: 'Tipo', type: 'text' },
+      { key: 'product', label: 'Produto', type: 'text' },
       { key: 'harvest', label: 'Safra', type: 'text' },
-      { key: 'commodity', label: 'Mercadoria', type: 'text' },
       { key: 'producerName', label: 'Produtor', type: 'text' },
     ],
   },
   {
     title: 'Itinerário / Destino',
     fields: [
-      { key: 'recipientName', label: 'Destinatário', type: 'text' },
-      { key: 'quantity', label: 'Quantidade (Kgs)', type: 'number' },
+      { key: 'loadingAddress', label: 'Itinerário', type: 'text' },
+      { key: 'deliveryLocation', label: 'Destino', type: 'text' },
     ],
   },
   {
@@ -177,6 +166,7 @@ export default function NovaOrdemPage() {
   const [saving, setSaving] = useState(false)
   const [ready, setReady] = useState(false)
   const [sections, setSections] = useState<SectionDef[]>(DEFAULT_SECTIONS)
+  const [isFabricio, setIsFabricio] = useState(false)
 
   // 1. Identificar o usuário e definir layout ANTES de tudo
   useEffect(() => {
@@ -192,6 +182,18 @@ export default function NovaOrdemPage() {
         // Se for Fabrício, usar layout exclusivo
         if (userEmail === FABRICIO_EMAIL) {
           setSections(FABRICIO_SECTIONS)
+          setIsFabricio(true)
+
+          // Auto-gerar número sequencial para Fabrício (se não editando)
+          if (!orderId) {
+            try {
+              const ordersRes = await fetch('/api/loading-orders')
+              const ordersJson = await ordersRes.json()
+              const orders = ordersJson.data || []
+              const nextNum = String(orders.length + 1).padStart(3, '0')
+              setFormData(prev => ({ ...prev, orderNumber: nextNum }))
+            } catch { /* fallback */ }
+          }
         }
       } catch {
         // fallback: layout padrão
@@ -390,13 +392,22 @@ export default function NovaOrdemPage() {
             {section.fields.map((field) => (
               <div key={field.key}>
                 <label className="block text-xs font-medium text-gray-500 mb-1">{field.label}</label>
-                <input
-                  type={field.type}
-                  value={formData[field.key] ?? ''}
-                  onChange={(e) => handleField(field.key, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder={field.label}
-                />
+                {field.type === 'readonly' ? (
+                  <input
+                    type="text"
+                    value={formData[field.key] ?? ''}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-100 rounded-lg text-sm bg-gray-50 text-gray-600 cursor-not-allowed"
+                  />
+                ) : (
+                  <input
+                    type={field.type}
+                    value={formData[field.key] ?? ''}
+                    onChange={(e) => handleField(field.key, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    placeholder={field.label}
+                  />
+                )}
               </div>
             ))}
           </div>

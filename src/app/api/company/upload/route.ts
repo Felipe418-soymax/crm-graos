@@ -18,7 +18,7 @@ async function saveLocal(filename: string, buffer: Buffer): Promise<string> {
   const dir = path.join(process.cwd(), 'public', 'uploads')
   await mkdir(dir, { recursive: true })
   await writeFile(path.join(dir, filename), buffer)
-  return `/uploads/${filename}`
+  return `/api/uploads/${filename}`
 }
 
 /** Upload to Supabase Storage and return public URL */

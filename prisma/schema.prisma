@@ -3,18 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("seller") // admin | seller
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  name                String
+  email               String   @unique
+  passwordHash        String
+  role                String   @default("seller") // admin | seller
+  loadingOrderLayout  String?  // JSON: custom field sections for loading order page (null = default layout)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   activities      ActivityLog[]
   companySettings CompanySettings?
@@ -22,6 +24,7 @@ model User {
   leads           Lead[]
   deals           Deal[]
   shipments       Shipment[]
+  loadingOrders   LoadingOrder[]
 }
 
 model Client {
@@ -42,8 +45,9 @@ model Client {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  deals Deal[]
-  leads Lead[]  @relation("ConvertedLead")
+  deals         Deal[]
+  leads         Lead[]         @relation("ConvertedLead")
+  loadingOrders LoadingOrder[]
 }
 
 model Lead {
@@ -86,7 +90,8 @@ model Deal {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  shipments Shipment[]
+  shipments     Shipment[]
+  loadingOrders LoadingOrder[]
 }
 
 model PriceHistory {
@@ -123,23 +128,45 @@ model Produto {
 }
 
 model CompanySettings {
-  id          String   @id @default(cuid())
-  companyName String?
-  region      String?
-  logoUrl     String?
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  // Dados da Empresa
+  companyName       String?  // Razão Social
+  tradeName         String?  // Nome Fantasia
+  cnpjCpf           String?  // CNPJ / CPF
+  stateRegistration String?  // Inscrição Estadual
+  phone             String?  // Telefone
+  email             String?  // Email
+  // Endereço
+  street            String?  // Rua
+  number            String?  // Número
+  district          String?  // Bairro
+  city              String?  // Cidade
+  state             String?  // Estado
+  zipCode           String?  // CEP
+  country           String?  @default("Brasil")
+  // Branding
+  logoUrl           String?  // Logo da Empresa (original comprimida)
+  logoThumbnailUrl  String?  // Variante: thumbnail 64x64
+  logoHeaderUrl     String?  // Variante: header 180x60
+  logoFaviconUrl    String?  // Variante: favicon 32x32 PNG
+  shortName         String?  // Nome curto (PWA shortcut)
+  // Legacy
+  region            String?
+  // Relations
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model Shipment {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   dealId         String
-  deal           Deal     @relation(fields: [dealId], references: [id])
+  deal           Deal           @relation(fields: [dealId], references: [id])
+  status         String         @default("confirmed") // pending | confirmed
   truckPlate     String
   cargoWeightKg  Float
-  bagsQuantity   Float    // Calculated: cargoWeightKg / 60
+  bagsQuantity   Float          // Calculated: cargoWeightKg / 60
   loadedProduct  String
   loadingDate    DateTime
   cargoValue     Float
@@ -147,7 +174,100 @@ model Shipment {
   driverPhone    String
   invoicePdfPath String?
   sellerId       String
-  seller         User     @relation(fields: [sellerId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  seller         User           @relation(fields: [sellerId], references: [id])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  loadingOrders  LoadingOrder[]
+}
+
+model LoadingOrder {
+  id          String   @id @default(cuid())
+  orderNumber Int      @unique @default(autoincrement())
+  status      String   @default("draft") // draft | issued | loading | completed | cancelled
+
+  // Relations
+  dealId     String
+  deal       Deal      @relation(fields: [dealId], references: [id])
+  shipmentId String?
+  shipment   Shipment? @relation(fields: [shipmentId], references: [id])
+  clientId   String?
+  client     Client?   @relation(fields: [clientId], references: [id])
+  sellerId   String
+  seller     User      @relation(fields: [sellerId], references: [id])
+
+  // Snapshot: Cliente
+  clientName    String?
+  clientAddress String?
+  clientCnpjCpf String?
+  clientCity    String?
+  clientState   String?
+  clientCep     String?
+  clientIe      String?
+  clientEmail   String?
+  clientPhone   String?
+
+  // Snapshot: Embarque / Destino
+  loadingAddress   String?
+  deliveryLocation String?
+  deliveryCityUf   String?
+
+  // Snapshot: Motorista
+  driverName    String?
+  driverCpf     String?
+  driverPhone   String?
+  driverAddress String?
+  driverCep     String?
+  driverEmail   String?
+
+  // Snapshot: Transportadora
+  carrierName  String?
+  carrierCnpj  String?
+  carrierPhone String?
+  truckPlate   String?
+  vehicle      String?
+  scaleWeight  Float?
+
+  // Snapshot: Destinatário
+  recipientName      String?
+  recipientCnpjCpf   String?
+  recipientPhone     String?
+  recipientAddress   String?
+  recipientCep       String?
+  recipientIe        String?
+
+  // Produto
+  product     String?
+  quantity    Float?
+  unit        String?
+  description String?
+  tare        Float?
+  grossWeight Float?
+
+  // Campos extras (perfis personalizados)
+  origin              String?  // Origem
+  warehouse           String?  // Armazém / Fazenda
+  authorizedCompany   String?  // Empresa autorizada
+  company             String?  // Empresa
+  ownerName           String?  // Proprietário
+  vehicleCity         String?  // Cidade do veículo
+  vehicleState        String?  // UF do veículo
+  antt                String?  // ANTT
+  weightKg            Float?   // Peso (Kgs)
+  cargoType           String?  // Tipo da carga
+  harvest             String?  // Safra
+  commodity           String?  // Mercadoria
+  producerName        String?  // Produtor
+  responsibleName     String?  // Responsável
+
+  // Meta
+  observations String?
+  issuedAt     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([dealId])
+  @@index([clientId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([issuedAt])
 }

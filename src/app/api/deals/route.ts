@@ -46,11 +46,11 @@ export async function GET(req: NextRequest) {
         status ? { status } : {},
         dateFrom ? { createdAt: { gte: new Date(dateFrom) } } : {},
         dateTo ? { createdAt: { lte: new Date(dateTo) } } : {},
-        search ? { client: { name: { contains: search } } } : {},
+        search ? { client: { name: { contains: search, mode: 'insensitive' as const } } } : {},
       ],
     },
     include: {
-      client: { select: { id: true, name: true, type: true } },
+      client: { select: { id: true, name: true, type: true, city: true, state: true } },
       ...(isAdmin ? { seller: { select: { id: true, name: true } } } : {}),
     },
     orderBy: { createdAt: 'desc' },

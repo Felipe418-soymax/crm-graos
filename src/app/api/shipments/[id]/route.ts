@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const body = await req.json()
     const {
+      status,
       truckPlate,
       cargoWeightKg,
       loadedProduct,
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const updated = await prisma.shipment.update({
       where: { id },
       data: {
+        ...(status !== undefined && { status }),
         ...(truckPlate !== undefined && { truckPlate }),
         ...(cargoWeightKg !== undefined && { cargoWeightKg: parseFloat(cargoWeightKg), bagsQuantity }),
         ...(loadedProduct !== undefined && { loadedProduct }),

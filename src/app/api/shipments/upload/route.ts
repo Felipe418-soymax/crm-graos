@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { supabase } from '@/lib/supabase'
 import { randomBytes } from 'crypto'
 
 export async function POST(req: NextRequest) {
@@ -36,18 +35,25 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Ensure upload directory exists
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'invoices')
-    await mkdir(uploadDir, { recursive: true })
+    // Upload to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from('invoices')
+      .upload(filename, buffer, {
+        contentType: 'application/pdf',
+        upsert: true,
+      })
 
-    // Save file
-    const filepath = join(uploadDir, filename)
-    await writeFile(filepath, buffer)
+    if (uploadError) {
+      console.error('Supabase upload error:', uploadError)
+      return NextResponse.json({ error: 'Erro ao fazer upload do arquivo' }, { status: 500 })
+    }
 
-    // Return the public path
-    const publicPath = `/uploads/invoices/${filename}`
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('invoices')
+      .getPublicUrl(filename)
 
-    return NextResponse.json({ data: { path: publicPath } }, { status: 200 })
+    return NextResponse.json({ data: { path: urlData.publicUrl } }, { status: 200 })
   } catch (error) {
     console.error('Error uploading file:', error)
     return NextResponse.json({ error: 'Erro ao fazer upload do arquivo' }, { status: 500 })

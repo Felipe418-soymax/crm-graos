@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <text x="0" y="32" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="30" fill="#1a1a2e">GRÃOS</text>
+  <text x="105" y="32" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="22" fill="#16a34a">CRM</text>
+  <!-- Leaf accent -->
+  <path d="M68 6 C70 2, 75 0, 78 4 C76 6, 72 8, 68 6Z" fill="#16a34a"/>
+  <path d="M70 5 C72 3, 74 2, 76 4" stroke="#16a34a" stroke-width="0.5" fill="none"/>
+  <!-- Decorative lines around CRM -->
+  <line x1="100" y1="28" x2="106" y2="28" stroke="#16a34a" stroke-width="1.5"/>
+  <line x1="148" y1="28" x2="154" y2="28" stroke="#16a34a" stroke-width="1.5"/>
+</svg>

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, Wheat } from 'lucide-react'
 import Sidebar from '@/components/ui/Sidebar'
 
@@ -10,6 +10,20 @@ interface DashboardShellProps {
 
 export default function DashboardShell({ user, children }: DashboardShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [brandName, setBrandName] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/company/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d.data) {
+          setLogoUrl(d.data.logoUrl || null)
+          setBrandName(d.data.tradeName || d.data.companyName || null)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -35,12 +49,20 @@ export default function DashboardShell({ user, children }: DashboardShellProps) 
           >
             <Menu size={22} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-green-500 rounded-lg flex items-center justify-center">
-              <Wheat className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-gray-900 text-base">Grãos CRM</span>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-7 max-w-[100px] object-contain" />
+            ) : (
+              <div className="w-7 h-7 bg-green-500 rounded-lg flex items-center justify-center">
+                <Wheat className="w-4 h-4 text-white" />
+              </div>
+            )}
+            <span className="font-bold text-gray-900 text-base truncate">
+              {brandName || 'Grãos CRM'}
+            </span>
           </div>
+          {/* Grãos CRM branding - subtle */}
+          <img src="/graos-crm-logo-light.svg" alt="Grãos CRM" className="h-4 opacity-40 flex-shrink-0" />
         </header>
 
         <main className="flex-1 overflow-auto">

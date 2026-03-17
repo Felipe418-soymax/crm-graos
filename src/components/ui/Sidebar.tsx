@@ -1,10 +1,12 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, Users, UserPlus, TrendingUp, BarChart3,
-  FileText, Settings, LogOut, Wheat, ChevronRight, X, Headphones, Package, Truck
+  FileText, Settings, LogOut, Wheat, ChevronRight, X, Headphones, Package, Truck,
+  ClipboardList, AlertTriangle
 } from 'lucide-react'
 
 const navItems = [
@@ -13,6 +15,8 @@ const navItems = [
   { href: '/leads', label: 'Leads', icon: UserPlus },
   { href: '/negociacoes', label: 'Negociações', icon: TrendingUp },
   { href: '/carregamentos', label: 'Carregamentos', icon: Truck },
+  { href: '/ordens', label: 'Ordens de Carreg.', icon: ClipboardList },
+  { href: '/pendencias', label: 'Pendências', icon: AlertTriangle },
   { href: '/produtos', label: 'Produtos', icon: Package },
   { href: '/precos', label: 'Preços', icon: BarChart3 },
   { href: '/relatorios', label: 'Relatórios', icon: FileText },
@@ -29,6 +33,20 @@ interface SidebarProps {
 export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [brandName, setBrandName] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/company/settings')
+      .then(r => r.json())
+      .then(d => {
+        if (d.data) {
+          setLogoUrl(d.data.logoUrl || null)
+          setBrandName(d.data.tradeName || d.data.companyName || null)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -46,13 +64,27 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
     >
       <div className="p-6 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Wheat className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="text-white font-bold text-lg leading-none">Grãos CRM</p>
-            <p className="text-gray-400 text-xs mt-0.5">Corretor de Commodities</p>
-          </div>
+          {logoUrl ? (
+            <>
+              <img src={logoUrl} alt="Logo" className="h-9 max-w-[120px] object-contain flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-lg leading-none truncate">
+                  {brandName || 'Grãos CRM'}
+                </p>
+                <p className="text-gray-400 text-xs mt-0.5 truncate">Painel de Gestão</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Wheat className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-bold text-lg leading-none truncate">Grãos CRM</p>
+                <p className="text-gray-400 text-xs mt-0.5 truncate">Corretor de Commodities</p>
+              </div>
+            </>
+          )}
           <button
             onClick={onClose}
             className="md:hidden p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
@@ -107,6 +139,10 @@ export default function Sidebar({ user, isOpen = false, onClose }: SidebarProps)
           <LogOut size={16} />
           Sair
         </button>
+        {/* Grãos CRM branding */}
+        <div className="mt-3 pt-3 border-t border-gray-800/50 flex items-center justify-center gap-1.5 opacity-50">
+          <img src="/graos-crm-logo-dark.svg" alt="Grãos CRM" className="h-4" />
+        </div>
       </div>
     </aside>
   )

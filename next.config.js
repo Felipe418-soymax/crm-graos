@@ -3,7 +3,7 @@ const nextConfig = {
   // Exclui pacotes Node.js-only do bundle de Server Components.
   // bcryptjs e @prisma/client NÃO devem ser bundled pelo webpack para SSR.
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'prisma'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs', 'prisma', 'sharp'],
   },
 
   // Headers de segurança HTTP básicos

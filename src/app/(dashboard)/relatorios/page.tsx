@@ -1,8 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { FileText, SlidersHorizontal, MapPin, Calendar, X, FileDown } from 'lucide-react'
-import { MonthlyReport } from '@/types'
+import { MonthlyReport, CompanySettings } from '@/types'
 import { formatCurrency, formatNumber, formatDate, UNIT_LABELS, getCurrentMonthYear } from '@/lib/utils'
+import { pdfHeader, pdfFooter, PDF_BASE_CSS } from '@/lib/pdf-branding'
 import { DealStatusBadge } from '@/components/ui/Badge'
 import Card, { CardHeader } from '@/components/ui/Card'
 
@@ -21,11 +22,16 @@ export default function RelatoriosPage() {
   const [regions,     setRegions]     = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
 
+  const [company, setCompany] = useState<CompanySettings | null>(null)
+
   const years = [cy - 2, cy - 1, cy, cy + 1]
   const hasFilters = !!(region || startDate || endDate)
 
   useEffect(() => {
     fetch('/api/regions').then(r => r.json()).then(d => setRegions(d.regions || [])).catch(() => {})
+    fetch('/api/company/settings').then(r => r.json()).then(d => {
+      if (d.data) setCompany(d.data)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -48,6 +54,7 @@ export default function RelatoriosPage() {
 
   function handleExportPDF() {
     if (!report) return
+    const brandLabel = company?.tradeName || company?.companyName || 'Grãos CRM'
     const ticketMedio = report.summary.dealsCount > 0
       ? formatCurrency(report.summary.totalValue / report.summary.dealsCount)
       : 'R$ 0,00'
@@ -79,42 +86,15 @@ export default function RelatoriosPage() {
       .map(([u, v]) => `${formatNumber(v as number)} ${(UNIT_LABELS as Record<string,string>)[u] || u}`)
       .join(' · ') || '-'
 
+    const subtitle = periodLabel + (region ? ' \u00b7 ' + region : '')
+
     const html = `<!DOCTYPE html>
 <html lang="pt-BR"><head>
 <meta charset="UTF-8">
-<title>Relatório Grãos CRM — ${periodLabel}</title>
-<style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:28px}
-  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #16a34a}
-  .brand{font-size:20px;font-weight:700;color:#16a34a}
-  .sub{font-size:12px;color:#555;margin-top:4px}
-  .meta{font-size:10px;color:#9ca3af;text-align:right;line-height:1.6}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
-  .card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:11px 13px}
-  .clbl{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-  .cval{font-size:15px;font-weight:700;color:#111}
-  .cval.g{color:#16a34a}
-  h2{font-size:10px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.8px;margin:18px 0 8px;padding-bottom:6px;border-bottom:1px solid #e5e7eb}
-  table{width:100%;border-collapse:collapse;font-size:10.5px;margin-bottom:4px}
-  th{background:#f3f4f6;padding:7px 8px;text-align:left;font-size:9px;color:#6b7280;text-transform:uppercase;border-bottom:1px solid #e5e7eb}
-  th.r,td.r{text-align:right}
-  td{padding:6px 8px;border-bottom:1px solid #f3f4f6}
-  .tot td{background:#f0fdf4;font-weight:700;border-top:2px solid #bbf7d0}
-  .footer{margin-top:24px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af;display:flex;justify-content:space-between}
-  @media print{@page{margin:12mm}body{padding:0}}
-</style>
+<title>Relatório ${brandLabel} — ${periodLabel}</title>
+<style>${PDF_BASE_CSS}</style>
 </head><body>
-<div class="hdr">
-  <div>
-    <div class="brand">🌾 Grãos CRM</div>
-    <div class="sub">Relatório de Operações — ${periodLabel}${region ? ' &nbsp;·&nbsp; ' + region : ''}</div>
-  </div>
-  <div class="meta">
-    Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'})}<br>
-    ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
-  </div>
-</div>
+${pdfHeader(company, 'Relatório de Operações', subtitle)}
 
 <div class="grid">
   <div class="card"><div class="clbl">Dinheiro Movimentado</div><div class="cval">${formatCurrency(report.summary.totalValue)}</div></div>
@@ -146,11 +126,7 @@ ${report.topClients.length > 0 ? `<h2>Top Clientes do Período</h2>
   </tbody>
 </table>
 
-<div class="footer">
-  <span>Grãos CRM — Sistema de Gestão para Corretores de Commodities</span>
-  <span>crm.soymax.site</span>
-</div>
-<script>window.onload = function(){ window.print() }</script>
+${pdfFooter(company)}
 </body></html>`
 
     const win = window.open('', '_blank', 'width=1000,height=750')

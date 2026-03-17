@@ -29,13 +29,9 @@ export function buildCompanyInfoHtml(c: CompanySettings | null): string {
 }
 
 /**
- * Grãos CRM SVG logo for light backgrounds (dark text)
+ * Grãos CRM styled HTML logo for documents (more reliable than SVG text in print)
  */
-export const GRAOS_LOGO_LIGHT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none" style="height:20px;width:auto">
-  <text x="0" y="32" font-family="Arial,Helvetica,sans-serif" font-weight="900" font-size="30" fill="#1a1a2e">GRÃOS</text>
-  <text x="105" y="32" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="22" fill="#16a34a">CRM</text>
-  <path d="M68 6 C70 2,75 0,78 4 C76 6,72 8,68 6Z" fill="#16a34a"/>
-</svg>`
+export const GRAOS_LOGO_HTML = `<span style="font-family:Arial,Helvetica,sans-serif;white-space:nowrap"><span style="font-weight:900;font-size:11px;color:#1a1a2e;letter-spacing:0.5px">GRÃOS</span><span style="font-weight:800;font-size:10px;color:#16a34a;margin-left:2px">CRM</span></span>`
 
 /**
  * Standard PDF header with client logo (primary) and company info
@@ -74,9 +70,8 @@ export function pdfFooter(c: CompanySettings | null): string {
   return `
     <div class="footer">
       <span>${brandLabel}</span>
-      <span style="display:flex;align-items:center;gap:6px;color:#b0b0b0;font-size:8px">
-        Documento gerado por
-        ${GRAOS_LOGO_LIGHT_SVG}
+      <span style="display:flex;align-items:center;gap:4px;color:#b0b0b0;font-size:8px">
+        Documento gerado por ${GRAOS_LOGO_HTML}
       </span>
     </div>
     <script>window.onload = function(){ window.print() }</script>`

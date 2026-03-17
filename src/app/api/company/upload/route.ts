@@ -1,15 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAuthUser } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import { processLogo } from '@/lib/image-processing'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 
 export const dynamic = 'force-dynamic'
 
 const ALLOWED_TYPES = ['image/png', 'image/svg+xml']
-
 const MAX_SIZE = 50 * 1024 * 1024 // 50MB
+
+const hasSupabase = !!(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY))
+
+/** Save file locally to public/uploads/ and return its public URL */
+async function saveLocal(filename: string, buffer: Buffer): Promise<string> {
+  const dir = path.join(process.cwd(), 'public', 'uploads')
+  await mkdir(dir, { recursive: true })
+  await writeFile(path.join(dir, filename), buffer)
+  return `/uploads/${filename}`
+}
+
+/** Upload to Supabase Storage and return public URL */
+async function saveSupabase(filename: string, buffer: Buffer): Promise<string> {
+  const { supabase } = await import('@/lib/supabase')
+  const { error } = await supabase.storage.from('logos').upload(filename, buffer, {
+    contentType: 'image/png',
+    upsert: true,
+    cacheControl: '31536000',
+  })
+  if (error) throw error
+  return supabase.storage.from('logos').getPublicUrl(filename).data.publicUrl
+}
+
+const save = hasSupabase ? saveSupabase : saveLocal
 
 export async function POST(req: NextRequest) {
   const authUser = await getAuthUser()
@@ -47,45 +71,13 @@ export async function POST(req: NextRequest) {
     const randomStr = randomBytes(8).toString('hex')
     const prefix = `logo-${timestamp}-${randomStr}`
 
-    // Upload all variants to Supabase Storage in parallel
-    const uploads = await Promise.all([
-      supabase.storage.from('logos').upload(`${prefix}-original.png`, variants.original, {
-        contentType: 'image/png',
-        upsert: true,
-        cacheControl: '31536000', // 1 year cache
-      }),
-      supabase.storage.from('logos').upload(`${prefix}-header.png`, variants.header, {
-        contentType: 'image/png',
-        upsert: true,
-        cacheControl: '31536000',
-      }),
-      supabase.storage.from('logos').upload(`${prefix}-thumb.png`, variants.thumbnail, {
-        contentType: 'image/png',
-        upsert: true,
-        cacheControl: '31536000',
-      }),
-      supabase.storage.from('logos').upload(`${prefix}-favicon.png`, variants.favicon, {
-        contentType: 'image/png',
-        upsert: true,
-        cacheControl: '31536000',
-      }),
+    // Upload all variants in parallel
+    const [logoUrl, logoHeaderUrl, logoThumbnailUrl, logoFaviconUrl] = await Promise.all([
+      save(`${prefix}-original.png`, variants.original),
+      save(`${prefix}-header.png`, variants.header),
+      save(`${prefix}-thumb.png`, variants.thumbnail),
+      save(`${prefix}-favicon.png`, variants.favicon),
     ])
-
-    // Check for upload errors
-    const failedUpload = uploads.find(u => u.error)
-    if (failedUpload?.error) {
-      console.error('Supabase upload error:', failedUpload.error)
-      return NextResponse.json({ error: 'Erro ao fazer upload da logo' }, { status: 500 })
-    }
-
-    // Get public URLs
-    const getUrl = (filename: string) =>
-      supabase.storage.from('logos').getPublicUrl(filename).data.publicUrl
-
-    const logoUrl = getUrl(`${prefix}-original.png`)
-    const logoHeaderUrl = getUrl(`${prefix}-header.png`)
-    const logoThumbnailUrl = getUrl(`${prefix}-thumb.png`)
-    const logoFaviconUrl = getUrl(`${prefix}-favicon.png`)
 
     // Auto-save all variant URLs to company settings
     await prisma.companySettings.upsert({

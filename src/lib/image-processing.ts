@@ -1,4 +1,4 @@
-import sharp from 'sharp'
+import type Sharp from 'sharp'
 
 export interface LogoVariants {
   /** Compressed original (max 800px wide) */
@@ -24,6 +24,9 @@ export async function processLogo(
   buffer: Buffer,
   mimeType: string
 ): Promise<LogoVariants> {
+  // Dynamic import to avoid webpack bundling issues in Next.js API routes
+  const sharp = (await import('sharp')).default
+
   const isSvg = mimeType === 'image/svg+xml'
 
   // For SVG: convert to high-res PNG first, then resize

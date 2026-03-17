@@ -7,8 +7,10 @@ COPY prisma ./prisma/
 RUN sed -i 's/provider  = "postgresql"/provider  = "sqlite"/' prisma/schema.prisma && \
     sed -i '/directUrl/d' prisma/schema.prisma && \
     sed -i 's/@unique @default(autoincrement())/@unique/' prisma/schema.prisma
-RUN npm install --ignore-scripts
-RUN npx prisma generate
+# Install deps (ignore scripts to avoid platform-specific issues), then install sharp for Alpine
+RUN npm install --ignore-scripts && \
+    npm install --no-save @img/sharp-linuxmusl-x64 && \
+    npx prisma generate
 COPY . .
 # Re-apply SQLite patches after COPY overwrites schema
 RUN sed -i 's/provider  = "postgresql"/provider  = "sqlite"/' prisma/schema.prisma && \
@@ -18,6 +20,8 @@ RUN sed -i 's/provider  = "postgresql"/provider  = "sqlite"/' prisma/schema.pris
 RUN find src -name '*.ts' -exec sed -i "s/, mode: 'insensitive' as const//g" {} + && \
     find src -name '*.ts' -exec sed -i "s/, mode: 'insensitive'//g" {} +
 RUN npx prisma generate
+# Verify sharp works before building
+RUN node -e "require('sharp')" && echo "sharp OK"
 RUN npm run build
 ENV NODE_ENV=production
 EXPOSE 3000

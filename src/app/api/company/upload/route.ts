@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import { processLogo } from '@/lib/image-processing'
 
+export const dynamic = 'force-dynamic'
+
 const ALLOWED_TYPES = ['image/png', 'image/svg+xml']
 
 const MAX_SIZE = 50 * 1024 * 1024 // 50MB
